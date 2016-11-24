@@ -12,6 +12,8 @@ If you have CHARMM available, please also set CHARMMEXEC"
 and CHARMMDATA to the location of the executable and
 CHARMM data directory (for parameter and toplogy files). 
 
+Documentation is available at: http://feig.bch.msu.edu/mmtsb
+
 Please send comments/questions to mmtsbtoolset@gmail.com
 
 
