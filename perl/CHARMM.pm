@@ -5069,7 +5069,7 @@ sub getRho {
   my $self=shift;
 
   my $rho = "N/A";
-  $rho = $self->reportVariable("rho")
+  $rho = $self->reportVariable("dmrho")
     if (defined $self->{_biasstatus}->{rho});
 
   return $rho;
@@ -6354,7 +6354,7 @@ sub _getpar {
 
 sub _getSel {
   my $a=lc shift;
-  
+ 
   if ($a eq "ca") {
     return "atom * * ca";
   } elsif ($a eq "cb") {

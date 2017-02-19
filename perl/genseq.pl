@@ -43,6 +43,8 @@ my $slist=();
 my $secfile;
 my $fraglist;
 my $fill;
+my $header="sp";
+my $fasta=0;
 
 while ($#ARGV>=0) {
   if ($ARGV[0] eq "-help" || $ARGV[0] eq "-h") {
@@ -52,6 +54,11 @@ while ($#ARGV>=0) {
     $input="pdb";
   } elsif ($ARGV[0] =~ /^-(monsster|one|pdb)$/) {
     ($input=shift @ARGV)=~s/^-//;
+  } elsif ($ARGV[0] eq "-fasta") {
+    shift @ARGV;
+    $fasta=1;
+    $output="one";
+    $input="one";
   } elsif ($ARGV[0] eq "-out") {
     shift @ARGV;
     $output=shift @ARGV;
@@ -102,7 +109,14 @@ if ($input eq "pdb") {
 } elsif ($input eq "one") {
   my $inp=&GenUtil::getInputFile($inpfile);
   my $seqstr="";
-  while(<$inp>) { chomp $_; $seqstr.=$_ if (!/^\>sp/); }
+  while(<$inp>) { 
+    chomp $_; 
+    if (/^\>(.*)/) {
+      $header=$1;
+    } else {
+      $seqstr.=$_;
+    }
+  }
   $seqstr=~s/ +//g;
   $seq=Sequence::new($seqstr);
 } else {
@@ -122,6 +136,7 @@ if (defined $fraglist) {
 if ($output eq "monsster") {
   $seq->writeMONSSTER(\*STDOUT,1);
 } elsif ($output =~ /^one/) {
+  printf STDOUT ">%s\n",$header if ($fasta);
   printf STDOUT "%s\n",$seq->abbrevSeq(1);
   if ($output eq "onesec") {
     printf STDOUT "%s\n",$seq->abbrevSec(1);

@@ -3488,7 +3488,7 @@ sub listSegments {
 
 sub info {
   my $self=shift;
-  
+ 
   printf "%d chains total\n",$#{$self->activeChains()}+1;
   foreach my $c ( @{$self->activeChains()} ) {
     printf "== chain %1s\n",$c->{id};
@@ -3513,6 +3513,27 @@ sub info {
       } else {
         printf "%d-%d\n",$first->{num},$lastnum;
       }
+
+      my $minx=999999999;
+      my $miny=999999999;
+      my $minz=999999999;
+ 
+      my $maxx=-999999999;
+      my $maxy=-999999999;
+      my $maxz=-999999999;
+
+      foreach my $a ( @{$c->{atom}}) {
+        $minx=$a->{xcoor} if ($a->{xcoor}<$minx);
+        $miny=$a->{ycoor} if ($a->{ycoor}<$miny);
+        $minz=$a->{zcoor} if ($a->{zcoor}<$minz);
+
+        $maxx=$a->{xcoor} if ($a->{xcoor}>$maxx);
+        $maxy=$a->{ycoor} if ($a->{ycoor}>$maxy);
+        $maxz=$a->{zcoor} if ($a->{zcoor}>$maxz);
+      }
+      printf "xrange %lf %lf : %lf\n",$minx,$maxx,$maxx-$minx;
+      printf "yrange %lf %lf : %lf\n",$miny,$maxy,$maxy-$miny;
+      printf "zrange %lf %lf : %lf\n",$minz,$maxz,$maxz-$minz;
     } 
   }
 }

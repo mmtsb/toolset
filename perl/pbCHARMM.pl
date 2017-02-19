@@ -292,17 +292,19 @@ if (defined $single || defined $double) {
     my $saveeps=$charmm->{par}->{epsw};
     $charmm->{par}->{epsw}=1;
     my ($tmaxx,$tmaxy,$tmaxz,$nxcel,$nycel,$nzcel,$xcent,$ycent,$zcent)=$charmm->pbgrid("$$.eps1","phi"); 
-    &convert2DX($tmaxx,$tmaxy,$tmaxz,$nxcel,$nycel,$nzcel,$xcent,$ycent,$zcent,$charmm->{par}->{dcel},"$$.eps1");
     $charmm->{par}->{epsw}=$saveeps;
     ($tmaxx,$tmaxy,$tmaxz,$nxcel,$nycel,$nzcel,$xcent,$ycent,$zcent)=$charmm->pbgrid("$$.epsw","phi"); 
+    $charmm->finish();
+
+    &convert2DX($tmaxx,$tmaxy,$tmaxz,$nxcel,$nycel,$nzcel,$xcent,$ycent,$zcent,$charmm->{par}->{dcel},"$$.eps1");
     &convert2DX($tmaxx,$tmaxy,$tmaxz,$nxcel,$nycel,$nzcel,$xcent,$ycent,$zcent,$charmm->{par}->{dcel},"$$.epsw");
     &diffDX("$$.eps1","$$.epsw",$emap);
     &GenUtil::remove("$$.eps1");
     &GenUtil::remove("$$.epsw");
-    $charmm->finish();
   } elsif (defined $epsgrid) {
     if (defined $gridname) {
       my ($tmaxx,$tmaxy,$tmaxz,$nxcel,$nycel,$nzcel,$xcent,$ycent,$zcent)=$charmm->pbgrid($epsgrid,($gridname eq "eps")?"epsx":$gridname); 
+      $charmm->finish();
 
       my $offsetx=0;
       my $offsety=0;
@@ -313,8 +315,8 @@ if (defined $single || defined $double) {
       &convert2DX($tmaxx,$tmaxy,$tmaxz,$nxcel,$nycel,$nzcel,$xcent,$ycent,$zcent,$charmm->{par}->{dcel},$epsgrid,$offsetx,$offsety,$offsetz) if ($dx);
     } else {
       $charmm->epsgrid($epsgrid,$epssize);
+      $charmm->finish();
     }
-    $charmm->finish();
 
   } else {
     $charmm->orient() unless (!$center);

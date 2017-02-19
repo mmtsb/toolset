@@ -183,6 +183,7 @@ $valignment=~s/X/8/g;
 for (my $is=0; $is<$alen; $is++) {
   my $ca=substr($valignment,$is,1);
   my $ct=substr($target,$is,1);
+#  printf STDERR "is %d %s %s\n",$is,$ca,$ct;
 
   if ($last<0 &&
       $ca=~/[A-Z]/ && $ct=~/[A-Z]/ &&
@@ -190,33 +191,37 @@ for (my $is=0; $is<$alen; $is++) {
     $last=$is;
     $lastm=$im;
     $lastt=$it;
+#    printf STDERR "last %d %d %d\n",$is,$im,$it;
   }
   
   if ($last>=0 && 
       ($ca!~/[A-Z]/ || $ct!~/[A-Z]/ || $is==$alen-1 || 
        substr($target,$is+1,1)!~/[A-Z]/)) {
+#    printf STDERR "new\n";
     my $frec={};
     
     $frec->{afrom}=$last;
     $frec->{pfrom}=$lastm+$amatch+$pdbmin;
     $frec->{from}=$lastt;
     $frec->{tfrom}=$lastm;
-    if ($is==$alen-1) {
-      $frec->{aseq}=substr($valignment,$last,$is-$last+1);
-      $frec->{tseq}=substr($target,$last,$is-$last+1);
-      $frec->{ato}=$is;
-      $frec->{to}=$it;
-      $frec->{pto}=$im+$amatch+$pdbmin;
-      $frec->{tto}=$im;
-    } else {
+#    if ($is==$alen-1) {
+#      $frec->{aseq}=substr($valignment,$last,$is-$last+1);
+#      $frec->{tseq}=substr($target,$last,$is-$last+1);
+#      $frec->{ato}=$is;
+#      $frec->{to}=$it;
+#      $frec->{pto}=$im+$amatch+$pdbmin;
+#      $frec->{tto}=$im;
+#    } else {
       $frec->{aseq}=uc substr($valignment,$last,$is-$last);
       $frec->{tseq}=uc substr($target,$last,$is-$last);
       $frec->{ato}=$is-1;
       $frec->{to}=$it-1;
       $frec->{pto}=$im+$amatch+$pdbmin-1;
       $frec->{tto}=$im-1;
-    }
+#    }
 
+#    printf STDERR "added %d %d %d %d\n",$frec->{afrom},$frec->{pfrom},$frec->{from},$frec->{tfrom};
+#    printf STDERR "added %d %d %d %d\n",$frec->{ato},$frec->{pto},$frec->{to},$frec->{tto};
     push (@frags,$frec);
 
     $last=-1;
@@ -227,6 +232,7 @@ for (my $is=0; $is<$alen; $is++) {
 
 my @have;
 foreach my $f (@frags) {
+#  printf STDERR "frag %d %d\n",$f->{from},$f->{to};
   if ($f->{to}-$f->{from}>0) {
    my $srec={};
    $srec->{from}=$f->{pfrom};

@@ -237,6 +237,25 @@ while(<INP>) {
     } else {
       printf STDERR "entry ::%s:: ignored\n",$_;
     }
+  } elsif (/^>([0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z])_([A-Z]) (.+)/) {
+    if (defined $trec && exists $trec->{id}) {
+      push(@{$data},$trec);
+    }
+    $trec={};
+    $skip=0;
+    $trec->{type}="pdb";
+    $trec->{id}=$1;
+    $trec->{chain}=$2;
+    $trec->{comment}=$3;
+  } elsif (/^>([0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z]) (.+)/) {
+    if (defined $trec && exists $trec->{id}) {
+      push(@{$data},$trec);
+    }
+    $trec={};
+    $skip=0;
+    $trec->{type}="pdb";
+    $trec->{id}=$1;
+    $trec->{comment}=$2;
   } elsif (/Expect\s+=\s+([^,]+),/) {
     if (exists $trec->{evalue}) {
       $skip=1;
@@ -247,12 +266,12 @@ while(<INP>) {
     $trec->{seqident}=$1;
     $trec->{query}=();
     $trec->{result}=();
-  } elsif (!$skip && /Query: ([0-9]+) +([^ ]+)/) {
+  } elsif (!$skip && /Query:*\s+([0-9]+)\s+([^ ]+)/) {
     my $srec={};
     $srec->{inx}=$1;
     $srec->{seq}=$2;
     push(@{$trec->{query}},$srec);
-  } elsif (!$skip && /Sbjct: ([0-9]+) +([^ ]+)/) {
+  } elsif (!$skip && /Sbjct:*\s+([0-9]+) +([^ ]+)/) {
     my $srec={};
     $srec->{inx}=$1;
     $srec->{seq}=$2;
