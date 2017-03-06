@@ -50,7 +50,7 @@ sub usage {
   printf STDERR "         [-epsilon] [-zeta] [-delta] [-alpha] [-beta] [-gamma]\n";
   printf STDERR "         [-volume] [-ientropy] [-surface]\n";
   printf STDERR "         [-rdist] [-diffusion]\n";
-  printf STDERR "         [-rmsf] [-s2] [-aniso] [-rmsdyn]\n";
+  printf STDERR "         [-rmsf] [-s2] [-aniso] [-rmsdyn] [-rotcor]\n";
   printf STDERR "         [-hbond] [-hbdist] [-hbangle] [-hbtime] [-hbunit]\n";
   printf STDERR "         [-avg] [-orient] [-recenter] [-norotate]\n";
   printf STDERR "         [-cpath] [-periodic] [-energy]\n";
@@ -841,6 +841,22 @@ foreach my $f ( @dcdfiles ) {
 #	}
 	 
 	$naccu=1;
+    }
+    elsif ($a eq "rotcor") {
+	if ($naccu>0) {
+	    printf STDERR "only first trajectory is processed for anisotropy calculation\n";
+	} else {
+	    if (!defined $sel1) {
+		printf STDERR "Error: selection not defined\n";
+		&usage();
+	    }
+	}
+        my ($alldata)=$charmm->analyzeTrajectoryRotationalCorrelation($f,selection=>$selection1);
+	foreach my $a (@{$alldata}) {
+	   $a->{desc}=sprintf("%lf",$a->{t});
+	   push(@{$accu},$a);
+	 }
+        $naccu=1;
     }
     elsif ($a eq "hbond"){
 	if (!defined $sel1){

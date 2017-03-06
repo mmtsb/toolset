@@ -4112,7 +4112,7 @@ sub clearBias {
     die "no rho bias was found to clear"
       if ((! defined $self->{_biasstatus}->{rho}) || 
           ($self->{_biasstatus}->{rho} eq "off"));
-    $self->_sendCommand("dmco force 0");
+    $self->_sendCommand("dmco clear");
     $self->{_biasstatus}->{rho}="off";
   } elsif ($par{type} eq "cons") {
   } elsif ($par{type} eq "hmcm") {
@@ -5822,59 +5822,155 @@ sub analyzeTrajectoryOrderParameters {
   $cmol->setValidSelection($par{selection});
   
   my $tmpout="$$-out";
+  my $sfile="$$-stream";
 
   my $results=();
 
+  my @selsetH=();
+  my @selsetN=();
+  my $nn=1;
+  my %lookup;
   foreach my $c (@{$cmol->{chain}} ) {
     foreach my $r (@{$c->{res}} ) {
       if ($r->{valid} && 
 	  $r->{name}=~/ALA|ARG|ASN|ASP|CYS|GLN|GLU|GLY|HSD|HSE|HSP|HIS|HID|HIE|HIP|HSP|ILE|LEU|LYS|MET|PHE|SER|THR|TRP|TYR|VAL|CYX/) {
-	$self->_sendCommand("open read unform unit 22 name \"$fname\"");
-        
-        my $cmd="correl maxt 1000000 maxseries 10 maxatoms 10\n";
-	$cmd.=sprintf("define nvec sele resi %d .and. segid %s .and. type N end\n",$r->{num}%10000,$r->{seg});
-	$cmd.=sprintf("define hvec sele resi %d .and. segid %s .and. type HN end\n",$r->{num}%10000,$r->{seg});
-	$cmd.="enter nv atom xyz sele nvec end\n";
-	$cmd.="enter hv atom xyz sele hvec end\n";
-	$cmd.="traj first 22 nunit 1\n";
-	$cmd.="mantime hv mult -1.\nmantime nv add hv\nmantime nv normal\ncorfun nv nv p2\n";
-	$cmd.="open unit 30 form write name $tmpout\n";
-	$cmd.="write corr unit 30 dumb\n";
-	$cmd.="close unit 30\n";
-	$cmd.="end";
-        
-	$self->_sendCommand($cmd);
-	$self->_getCHARMMOutput("PERLDONE\n  \n") 
-	  if ($self->{_lastOutput} eq "");
-
-	my @tdat=();
-	open INP,$tmpout;
-	while (<INP>) {
-	  chomp;
-	  push(@tdat,$_);
-	}
-	close INP;
-
-	my $isum=0.0;
-	my $nn=0;
-	for (my $i=$#tdat; $i>0 && $i>$#tdat-20; $i--) {
-	  $isum+=$tdat[$i];
-	  $nn++;
-	}
-	$isum/=$nn;
+        push(@selsetN,sprintf("select resi %d .and. segid %s .and. type N end",$r->{num}%10000,$r->{seg})); 
+        push(@selsetH,sprintf("select resi %d .and. segid %s .and. type HN end",$r->{num}%10000,$r->{seg})); 
 
 	my $trec={};
 	$trec->{seg}=$r->{seg};
 	$trec->{resnum}=$r->{num};
 	$trec->{resname}=$r->{name};
-	$trec->{s2}=$isum;
-
+	$trec->{s2}=0.0;
+        $trec->{key}=sprintf("x%03x",$nn++);
 	push(@{$results},$trec);
-
-	&GenUtil::remove($tmpout);
+        $lookup{$trec->{key}}=$trec;
       }
     }
-  }	
+  }
+
+  $self->_sendCommand("open read unform unit 22 name \"$fname\"");
+  $self->_sendCommand("trajectory query unit 22");
+  my $nframes=$self->reportVariable("nfile");
+  my $delta=$self->reportVariable("delta");
+  open OUT,">$sfile";
+  printf OUT "* S2 internal order correlation analysis\n";
+  printf OUT "*\n";
+
+  printf OUT "correl maxt %d maxseries %d maxatoms %d\n",$nframes,($#selsetN+1)*7,($#selsetN+1)*2;
+
+  for(my $is=0; $is<=$#selsetN; $is++) {
+    printf OUT "enter n%03x atom xyz %s\n",$is+1,$selsetN[$is];
+    printf OUT "enter h%03x atom xyz %s\n",$is+1,$selsetH[$is];
+    printf OUT "enter x%03x zero\n",$is+1;
+  }
+  printf OUT "traj first 22 nunit 1\n";
+  for(my $is=0; $is<=$#selsetN; $is++) {
+    printf OUT "mantime h%03x mult -1.\n",$is+1;
+    printf OUT "mantime n%03x add h%03x\n",$is+1,$is+1;
+    printf OUT "mantime n%03x normal\n",$is+1;
+    printf OUT "corfun n%03x n%03x p2\n",$is+1,$is+1;
+    printf OUT "mantime x%03x copy corr first %d\n",$is+1,int(($nframes/3.0)*2.0/3.0);
+  }
+  printf OUT "end\n"; 
+  close OUT;
+
+  $self->_sendCommand("open unit 78 read form name \"$sfile\"");
+  $self->_sendCommand("stream unit 78");
+  $self->_getCHARMMOutput("PERLDONE\n  \n");
+
+
+  my $key=undef;
+  foreach my $l ( split(/\n/,$self->{_lastOutput}) ) {
+    if ($l=~/mantime (.+) copy corr first/) {
+      $key=$1;
+    } elsif (defined $key && $key ne "" && $l=~/AVERAGE:\s*(\S+)/) {
+      my $val=$1;
+      $val=0.0 if ($val=~/[nN]a[Nn]/);
+      $lookup{$key}->{s2}=$val;
+      $key=undef;
+    }   
+  }
+
+  &GenUtil::remove($sfile) unless (defined $self->{handle}->{cmdlog});
+  return $results;
+}
+
+## function: analyzeTrajectoryRotationalCorrelation([options])
+
+sub analyzeTrajectoryRotationalCorrelation {
+  my $self=shift;
+  my $fname=shift;
+  my %par=@_;
+
+  my $cmol=$self->{molecule}->clone();
+  $cmol->setValidSelection($par{selection});
+  
+  my $tmpout="$$-out";
+  my $sfile="$$-stream";
+
+  my $results=();
+
+  my @selset=();
+  foreach my $c (@{$cmol->{chain}} ) {
+    foreach my $r (@{$c->{atom}} ) {
+      if ($r->{valid}) { 
+        push(@selset,sprintf("select resi %d .and. segid %s .and. type %s end",$r->{resnum},$r->{seg},$r->{atomname}));
+      }
+    }
+  }
+  
+  $self->_sendCommand("open read unform unit 22 name \"$fname\"");
+  $self->_sendCommand("trajectory query unit 22");
+  my $nframes=$self->reportVariable("nfile");
+  my $delta=$self->reportVariable("delta");
+  open OUT,">$sfile";
+  printf OUT "* rotational correlation analysis\n";
+  printf OUT "*\n";
+  
+  printf OUT "correl maxt %d maxseries %d maxatoms %d\n",$nframes,($#selset+1)*3+1,$#selset+1;
+ 
+  for(my $is=0; $is<=$#selset; $is++) {
+    printf OUT "enter %04x atom xyz %s\n",$is+1,$selset[$is];
+  }
+  printf OUT "enter accu zero\n";
+  printf OUT "traj first 22 nunit 1\n";
+  for (my $is=0; $is<=$#selset; $is++) {
+    printf OUT "mantime %04x normal\n",$is+1;
+    printf OUT "corfun %04x %04x p2\n",$is+1,$is+1;
+    if ($is==0) {
+      printf OUT "mantime accu copy corr\n";
+    } else {
+      printf OUT "mantime accu add corr\n";
+    }
+  }
+  printf OUT "mantime accu divi %d\n",$#selset+1;
+  
+  printf OUT "open unit 30 form write name $tmpout\n";
+  printf OUT "write accu unit 30 dumb\n";
+  printf OUT "close unit 30\n";
+  printf OUT "end\n";
+  close OUT;
+
+  $self->_sendCommand("open unit 78 read form name \"$sfile\"");
+  $self->_sendCommand("stream unit 78");
+  $self->_getCHARMMOutput("PERLDONE\n  \n");
+
+  &GenUtil::remove($sfile) unless (defined $self->{handle}->{cmdlog});
+
+  open INP,$tmpout;
+  my $n=0;
+  while (<INP>) {
+    chomp;
+    my $trec={};
+    $trec->{t}=$n*$delta;
+    $trec->{inx}=++$n;
+    $trec->{val}=$_;
+    push(@{$results},$trec);
+  }
+  close INP;
+
+  &GenUtil::remove($tmpout);
   return $results;
 }
 
