@@ -212,6 +212,7 @@ sub readPDB {
 # J
           $resname=~s/^WAT$/TIP3/;
           $atomname="OH2" if ($resname eq "TIP3" && $atomname eq "O");
+          $atomname="OH2" if ($resname eq "TIP4" && $atomname eq "O");
 
           $resname=~s/Na\+/SOD/;
           $atomname=~s/Na\+/SOD/;
@@ -470,7 +471,7 @@ sub readPDB {
 	  my $pdbrec={};
 	 
           my $ainx=substr($_,4,7);
-          if ($ainx!~/[0-9]/) {
+          if ($ainx!~/^[0-9\s]+$/) {
             $pdbrec->{atominx}=$lastainx+1;
           } else { 
   	    $pdbrec->{atominx}=$ainx+0;
@@ -676,7 +677,7 @@ sub readCRD {
         
 	$iresnum=$resnum+0;
 
-	$chain=($resname eq "TIP3" || $resname eq "HOH" || $resname eq "SPC")?"+":" ";
+	$chain=($resname eq "TIP3" || $resname eq "TIP4" || $resname eq "HOH" || $resname eq "SPC")?"+":" ";
 	  
 	$atomname="CD1" 
 	  if ($resname eq "ILE" && $atomname eq "CD");
@@ -780,7 +781,7 @@ sub readMol2 {
       $ycoor=$4;
       $zcoor=$5;
 
-      $chain=($resname eq "TIP3" || $resname eq "HOH" || $resname eq "SPC")?"+":" ";
+      $chain=($resname eq "TIP3" || $resname eq "TIP4" || $resname eq "HOH" || $resname eq "SPC")?"+":" ";
       
       if ($chain ne $lastchain) {
 	my $crec=$self->{chainlookup}->{$chain};
@@ -867,7 +868,7 @@ sub readPSF {
 
         if ($seg=~/...([A-Za-z0-9\+\-\=\_])/) {
           $chain=$1;
-	} elsif ($resname eq "TIP3" || $resname eq "HOH" || $resname eq "SPC") {
+	} elsif ($resname eq "TIP3" || $resname eq "TIP4" || $resname eq "HOH" || $resname eq "SPC") {
           $chain="+";
         } else {
           $chain=" ";
@@ -1636,7 +1637,7 @@ sub generateSegNames {
       my $nwatpart=0;
       for (my $ir=0; $ir<=$#{$c->{res}}; $ir++) {
 	my $r=$c->{res}->[$ir];
-	if ($r->{name} eq "TIP3" || $r->{name} eq "HOH" || $r->{name} eq "SPC") {
+	if ($r->{name} eq "TIP3" || $r->{name} eq "HOH" || $r->{name} eq "SPC" || $r->{name} eq "TIP4" ) {
           $nwatpart=int($r->{num}/10000);
           $r->{altnum}=$r->{num}%10000;
           if ($r->{chain}=~/[A-Za-z0-9\-\_\=]/) {
@@ -1696,7 +1697,7 @@ sub generateSplitSegNames {
     if ($#{$c->{res}}>=0) {
 	my $r=$c->{res}->[0];
 	my $prevC;
-	if ($r->{name} eq "TIP3" || $r->{name} eq "HOH" || $r->{name} eq "WAT") {
+	if ($r->{name} eq "TIP3" || $r->{name} eq "TIP4" || $r->{name} eq "HOH" || $r->{name} eq "WAT") {
 	  $r->{seg}="WATR";
 	} elsif ($r->{name} =~ /GUA|ADE|URA|THY|CYT/) {
 	  $r->{seg}="NA00";
@@ -1711,7 +1712,7 @@ sub generateSplitSegNames {
 
         for (my $ir=1; $ir<=$#{$c->{res}}; $ir++) {
 	   my $r=$c->{res}->[$ir];
-	   if ($r->{name} eq "TIP3" || $r->{name} eq "HOH" || $r->{name} eq "WAT") {
+	   if ($r->{name} eq "TIP3" || $r->{name} eq "TIP4" || $r->{name} eq "HOH" || $r->{name} eq "WAT") {
 	       $r->{seg}="WATR";
 	   } elsif ($r->{name} =~ /GUA|ADE|URA|THY|CYT/) {
 	       $r->{seg}="NA00";
@@ -3018,11 +3019,12 @@ sub orient {
 sub setaux1 {
   my $self=shift;
   my $val=shift;
+  my $valid=shift;
 
   foreach my $c ( @{$self->{chain}} ) {
     my $atom=$c->{atom};
     for (my $i=0; $i<=$#{$atom}; $i++) {
-      $atom->[$i]->{aux1}=$val;
+      $atom->[$i]->{aux1}=$val if (!defined $valid || !$valid || $atom->[$i]->{valid});
     }
   }
 }
@@ -3033,11 +3035,12 @@ sub setaux1 {
 sub setaux2 {
   my $self=shift;
   my $val=shift;
+  my $valid=shift;
 
   foreach my $c ( @{$self->{chain}} ) {
     my $atom=$c->{atom};
     for (my $i=0; $i<=$#{$atom}; $i++) {
-      $atom->[$i]->{aux2}=$val;
+      $atom->[$i]->{aux2}=$val if (!defined $valid || !$valid || $atom->[$i]->{valid});
     }
   }
 }
@@ -3576,10 +3579,10 @@ sub completeWater {
 	my $arec={};
 	%{$arec}=%{$c->{atom}->[$ia]};
 	$arec->{atomname}="OH2" 
-	  if ($arec->{atomname} eq "O" && ($arec->{resname} eq "TIP3" || $arec->{resname} eq "HOH"));
+	  if ($arec->{atomname} eq "O" && ($arec->{resname} eq "TIP3" || $arec->{resname} eq "TIP4" || $arec->{resname} eq "HOH"));
 	push(@{$nc->{atom}},$arec);
       }
-      if (($r->{name} eq "TIP3" || $r->{name} eq "HOH") && $r->{start} == $r->{end}) {
+      if (($r->{name} eq "TIP3" || $r->{name} eq "TIP4" || $r->{name} eq "HOH") && $r->{start} == $r->{end}) {
 	my $ox=$c->{atom}->[$r->{start}]->{xcoor};
 	my $oy=$c->{atom}->[$r->{start}]->{ycoor};
 	my $oz=$c->{atom}->[$r->{start}]->{zcoor};
@@ -3984,28 +3987,31 @@ sub fixCOO {
 ## method: solvate([cutoff,[shape]])
 ## solvates a PDB from a pre-equilibrated water box
 ## returns error output from solvate program
-
 sub solvate {
   my $self=shift;
   my $cutoff=shift;
   my $shape=shift;
   my $fraglist=shift;
   my $solvcut=shift;
+  my $tip4p=shift;
   my $center=shift;
-
+  #print STDERR "cutoff= $cutoff shape= $shape tip4p= $tip4p center= $center\n";
   $cutoff=9.0 if (!defined $cutoff);
-
-  my $option="-box $ENV{MMTSBDIR}/data/water.pdb -cutoff $cutoff ";
+  my $option=" -cutoff $cutoff ";
+  $option.=" -box $ENV{MMTSBDIR}/data/water_tip4p.pdb " if ($tip4p==1);
+  $option.=" -box $ENV{MMTSBDIR}/data/water.pdb " if ($tip4p!=1);
   $option.="-$shape " if (defined $shape);
+  #$option.="-tip4p " if (defined $tip4p && $tip4p);
   $option.="-solvcut $solvcut " if (defined $solvcut);
+  $option.="-tip4p" if (defined $tip4p);
   $option.="-center " if (defined $center && $center);
   $option.="-nocenter " if (defined $center && !$center);
-  
+  #$option.="-tip4p " if (defined $tip4p);
   my $solvatebin=&GenUtil::findExecutable("solvate");
   die "cannot find solvate executable"
     if (!defined $solvatebin);
 
-#  printf STDERR "running $solvatebin $option -\n";
+#  printf STDERR "running $solvatebin option -\n";
 
   local (*READ,*WRITE,*ERR);
   my $pid=open3(*WRITE,*READ,*ERR,"$solvatebin $option -");
@@ -4058,7 +4064,7 @@ sub replaceIons {
   my @wat=();
   foreach my $c ( @{$self->{chain}} ) {
     foreach my $r ( @{$c->{res}} ) {
-       if ($r->{name} eq "TIP3" || $r->{name} eq "HOH") {
+       if ($r->{name} eq "TIP3" || $r->{name} eq "TIP4" || $r->{name} eq "HOH") {
          $r->{atom}=$c->{atom}->[$r->{start}];
          push(@wat,$r);
        }

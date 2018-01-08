@@ -13,7 +13,7 @@ sub usage {
   printf STDERR "         [-s inx:sequence[=inx:sequence]]\n";
   printf STDERR "         [-2ndpred file[:file...]\n";
   printf STDERR "         [-2ndone file]\n";
-  printf STDERR "         [-dssp]\n";
+  printf STDERR "         [-dssp] [-dsspfull] [-dsspnum]\n";
   printf STDERR "         [-fill]\n";
   exit 1;
 }
@@ -68,6 +68,12 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-dssp") {
     shift @ARGV;
     $secondary="dssp";
+  } elsif ($ARGV[0] eq "-dsspfull") {
+    shift @ARGV;
+    $secondary="dsspfull";
+  } elsif ($ARGV[0] eq "-dsspnum") {
+    shift @ARGV;
+    $secondary="dsspnum";
   } elsif ($ARGV[0] eq "-fill") {
     shift @ARGV;
     $fill=1;
@@ -103,6 +109,10 @@ if ($input eq "pdb") {
   $seq=Sequence::new($mol,$slist,$fill);
   $seq->secFromDSSP($mol)
     if ($secondary eq "dssp" && $#{$slist}<0);
+  $seq->secFromDSSP($mol,1)
+    if ($secondary eq "dsspfull" && $#{$slist}<0);
+  $seq->secFromDSSP($mol,1,1)
+    if ($secondary eq "dsspnum" && $#{$slist}<0);
 } elsif ($input eq "monsster") {
   $seq=Sequence::new();
   $seq->readMONSSTER($inpfile);

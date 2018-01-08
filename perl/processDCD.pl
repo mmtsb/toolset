@@ -12,7 +12,7 @@ sub usage {
   printf STDERR "          [-function file]\n";
   printf STDERR "          [-extract name]\n";
   printf STDERR "          [-ensdir dir] [-ens tag]\n";
-  printf STDERR "          [-rms CA|CAB|C|O|N|side|back|all ref]\n";
+  printf STDERR "          [-rms CA|CAB|C|O|N|side|back|all ref] [-useseg]\n";
   printf STDERR "          [-qscore ref] [-boxsize]\n";
   printf STDERR "          [-wrapseg]\n";
   printf STDERR "          [-average] [-fit ref] [-fitsel cab|ca|cb|heavy] [-fitresnumonly]\n";
@@ -53,6 +53,9 @@ my $psffile;
 my $enstag;
 my $ensdir=".";
 my $multi;
+my $boxa;
+my $boxb;
+my $boxc;
 
 my $frames;
 my $atoms;
@@ -64,6 +67,9 @@ my $selmode="cab";
 
 my $boxsize=0;
 my $wrapseg=0;
+
+my $useseg=0;
+my $lsqfit=0;
 
 while ($#ARGV>=0) {
   if ($ARGV[0] eq "-inx") {
@@ -85,6 +91,12 @@ while ($#ARGV>=0) {
     shift @ARGV;
     $rmsmode=shift @ARGV;
     $ref=shift @ARGV;
+  } elsif ($ARGV[0] eq "-useseg") {
+    shift @ARGV;
+    $useseg=1;
+  } elsif ($ARGV[0] eq "-fit") {
+    shift @ARGV;
+    $lsqfit=1;
   } elsif ($ARGV[0] eq "-multi") {
     shift @ARGV;
     $multi=shift @ARGV;
@@ -493,9 +505,8 @@ foreach my $dcd ( @dcdfiles ) {
         }
 
 	if (defined $rmsmode) {
-	  $analyze->lsqfit($cmpmol,"cab",0,1);
-	  my $rmsd=$analyze->rmsd($cmpmol,0,undef,1);
-	  
+          $analyze->lsqfit($cmpmol,$selmode,0,0,undef,$useseg) if ($lsqfit);
+          my $rmsd=$analyze->rmsd($cmpmol,0,undef,0,undef,$useseg);
           printf "%d %f %f\n",($itot),($itot)*$deltat,$rmsd->{$rmsmode};
 	} elsif (defined $qscore) {
 	  my $qsc=$analyze->qscore($cmpmol,1);
@@ -525,12 +536,13 @@ foreach my $dcd ( @dcdfiles ) {
 
 	if ($crystal) {
 	  my ($tbuf,$tlen)=&GenUtil::readFortran($dcdfile);
-          if ($wrapseg) {
-            my @cdat=unpack("d*",$tbuf);
-	    $a=sqrt($cdat[0]*$cdat[0]+$cdat[1]*$cdat[1]+$cdat[3]*$cdat[3]);
-	    $b=sqrt($cdat[1]*$cdat[1]+$cdat[2]*$cdat[2]+$cdat[4]*$cdat[4]);
-	    $c=sqrt($cdat[3]*$cdat[3]+$cdat[4]*$cdat[4]+$cdat[5]*$cdat[5]);
-          }
+          my @cdat=unpack("d*",$tbuf);
+          $a=sqrt($cdat[0]*$cdat[0]+$cdat[1]*$cdat[1]+$cdat[3]*$cdat[3]);
+	  $b=sqrt($cdat[1]*$cdat[1]+$cdat[2]*$cdat[2]+$cdat[4]*$cdat[4]);
+	  $c=sqrt($cdat[3]*$cdat[3]+$cdat[4]*$cdat[4]+$cdat[5]*$cdat[5]);
+          $boxa=$a;
+          $boxb=$b;
+          $boxc=$c;
 	}
 	
 	($xbuf,$len)=&GenUtil::readFortran($dcdfile); #printf STDERR "%d ",$len;
@@ -608,7 +620,7 @@ foreach my $dcd ( @dcdfiles ) {
 	    system "cat tmp-$$ | $apply";
 	    &GenUtil::remove("tmp-$$");
 	  } elsif (defined $ffile) {
-	    my @res=&analyze($cmpmol);
+	    my @res=&analyze($cmpmol,$boxa,$boxb,$boxc);
             if (defined $res[0]) {
   	      printf "%d %1.4f ",($i+$firstframe-1),($i+$firstframe-1)*$deltat;
 	      printf "%s\n",join(" ",@res);

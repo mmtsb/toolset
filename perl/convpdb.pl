@@ -83,6 +83,9 @@ my $nsel;
 my $solvate;
 my $solvcut=undef;
 my $shape;
+my $tip4p=0;
+#my $box="/apps/mmtsb/data/water.pdb";
+#my $boxwidth=undef;
 my $cutoff=9.0;
 my $excllist;
 my $hetero=1;
@@ -374,6 +377,15 @@ while ($#ARGV>=0) {
     shift @ARGV;
     $solvate=1;
     $center=1 if ($center==0);
+  } elsif ($ARGV[0] eq "-tip4p") {
+    shift @ARGV;
+    $tip4p=1;
+#  } elsif ($ARGV[0] eq "-box" ) {
+#    shift @ARGV;
+#    $box=shift @ARGV;
+#  } elsif ($ARGV[0] eq "-boxwidth" ) {
+#    shift @ARGV;
+#    $boxwidth=shift @ARGV;
   } elsif ($ARGV[0] eq "-cubic") {
     shift @ARGV;
     $shape="cubic";
@@ -536,7 +548,7 @@ if (defined $nsel) {
   }
 }
 
-$mol=$mol->clone(1) if (defined $sellist || defined $excllist || !$hetero || defined $selseq || defined $chain || defined $nsel);
+$mol=$mol->clone(1) if ((defined $sellist || defined $excllist || !$hetero || defined $selseq || defined $chain || defined $nsel) && !defined $setaux1 && !defined $setaux2);
 
 $mol->setChain($setchain,$setall) if (defined $setchain);
 $mol->setSegment($setseg,$setall) if (defined $setseg);
@@ -583,7 +595,7 @@ $mol->shiftResNumber($addres)  if (defined $addres);
 $mol->generateSegNames() if (defined $segnames);
 $mol->fixCOO() if ($fixcoo);
 if (defined $solvate && $solvate) {
-  my $err=$mol->solvate($cutoff,$shape,undef,$solvcut,(!$center)?0:undef);
+  my $err=$mol->solvate($cutoff,$shape,undef,$solvcut,(!$tip4p)?0:1,(!$center)?0:undef);
   print STDERR $err;
 }
 
@@ -626,11 +638,11 @@ if (defined $diffpdbfile) { #note that subtrahend is given as argument before mi
 }
 
 if (defined $setaux1) {
-  $mol->setaux1($setaux1);
+  $mol->setaux1($setaux1,1);
 }
 
 if (defined $setaux2) {
-  $mol->setaux2($setaux2);
+  $mol->setaux2($setaux2,1);
 }
 
 if ($info) {

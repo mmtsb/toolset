@@ -246,6 +246,8 @@ sub new {
    gbmvason   => 1.2,           # GBMV SASA internal parameter, old: 0.5
    gbmvasoff  => 1.5,           # GBMV SASA internal parameter, old: 1.75
 
+   #gbmvexcl   => 0,             # GBMV selection
+
    gbswsw     => 0.3,           # GBSW switching length
    gbswrmax   => 20.0,          # GBSW maximum integration radius
    gbswnang   => 38,            # GBSW number of angular integration points
@@ -266,29 +268,29 @@ sub new {
    hdgbdenshprofile => undef,   # density profile for H (HDGB van der Waals)
 
    hdgbvdw      => 0,           # turn on HDGB van der Waals term
-   hdgbvdwact3  => 0.5,         # HDGB van der Waals a for CT3
-   hdgbvdwacy   => 0.4,         # HDGB van der Waals a for CY 
-   hdgbvdwacph  => 0.8,         # HDGB van der Waals a for CPH
-   hdgbvdwacc   => 0.8,         # HDGB van der Waals a for CC 
-   hdgbvdwaca  => 0.4,         # HDGB van der Waals a for CA 
-   hdgbvdwact1  => 1.1,         # HDGB van der Waals a for CT1
-   hdgbvdwact2  => 0.9,         # HDGB van der Waals a for CT2
-   hdgbvdwacm   => 1.4,         # HDGB van der Waals a for CM 
-   hdgbvdwahs   => 1.0,         # HDGB van der Waals a for HS 
-   hdgbvdwaho   => 1.5,         # HDGB van der Waals a for HO
-   hdgbvdwahy   => 0.4,         # HDGB van der Waals a for HY
-   hdgbvdwahm   => 1.35,        # HDGB van der Waals a for HM 
-   hdgbvdwahp   => 0.3,         # HDGB van der Waals a for HP 
-   hdgbvdwahr   => 0.95,        # HDGB van der Waals a for HR  
-   hdgbvdwanh   => 0.45,        # HDGB van der Waals a for NH 
-   hdgbvdwany   => 0.3,         # HDGB van der Waals a for NY 
-   hdgbvdwaoh   => 1.5,         # HDGB van der Waals a for OH 
-   hdgbvdwaoy   => 1.45,        # HDGB van der Waals a for OY 
-   hdgbvdwaor   => 0.85,        # HDGB van der Waals a for OR 
-   hdgbvdwasm   => 0.35,        # HDGB van der Waals a for SM 
-   hdgbvdwasc   => 0.85,        # HDGB van der Waals a for SC
-   hdgbvdwas    => 0.45,        # HDGB van der Waals a for S 
-   hdgbvdwap    => 0.75,        # HDGB van der Waals a for P  
+   hdgbvdwact3  => 0.25,         # HDGB van der Waals a for CT3
+   hdgbvdwacy   => 0.2,         # HDGB van der Waals a for CY 
+   hdgbvdwacph  => 0.4,         # HDGB van der Waals a for CPH
+   hdgbvdwacc   => 0.4,         # HDGB van der Waals a for CC 
+   hdgbvdwaca  => 0.2,         # HDGB van der Waals a for CA 
+   hdgbvdwact1  => 0.55,         # HDGB van der Waals a for CT1
+   hdgbvdwact2  => 0.45,         # HDGB van der Waals a for CT2
+   hdgbvdwacm   => 0.7,         # HDGB van der Waals a for CM 
+   hdgbvdwahs   => 0.5,         # HDGB van der Waals a for HS 
+   hdgbvdwaho   => 0.75,         # HDGB van der Waals a for HO
+   hdgbvdwahy   => 0.2,         # HDGB van der Waals a for HY
+   hdgbvdwahm   => 0.675,        # HDGB van der Waals a for HM 
+   hdgbvdwahp   => 0.15,         # HDGB van der Waals a for HP 
+   hdgbvdwahr   => 0.475,        # HDGB van der Waals a for HR  
+   hdgbvdwanh   => 0.225,        # HDGB van der Waals a for NH 
+   hdgbvdwany   => 0.15,         # HDGB van der Waals a for NY 
+   hdgbvdwaoh   => 0.75,         # HDGB van der Waals a for OH 
+   hdgbvdwaoy   => 0.725,        # HDGB van der Waals a for OY 
+   hdgbvdwaor   => 0.425,        # HDGB van der Waals a for OR 
+   hdgbvdwasm   => 0.175,        # HDGB van der Waals a for SM 
+   hdgbvdwasc   => 0.425,        # HDGB van der Waals a for SC
+   hdgbvdwas    => 0.225,        # HDGB van der Waals a for S 
+   hdgbvdwap    => 0.375,        # HDGB van der Waals a for P  
 
    scalerad  => 0,              # scaled radii for GB/PB
 
@@ -404,8 +406,10 @@ sub new {
    eef1file  => "solvpar.inp",  # EEF1 parameter file
 
    imm1      => 0,              # implicit membrane model based on EEF1, use eef1file for loading parameter file
+   imm1p36   => 0,              # imm1 model with using CHARMM36 all-atom parameters
    imm1file  => "solvpar.inp",  # IMM1 parameter file
    imm1width => 26.0,           # membrane width
+   imm1aemp  => 0.85,           # parameter a
 
    sasa      => 0,              # flag to switch on SASA energy terms
    sasaeps   => 2.0,            # SASA dielectric constant
@@ -522,6 +526,7 @@ sub new {
    noekmax   => 1.0,            # force constant for large distance harmonic potential
    noefmax   => 9999.0,         # maximum force
    noescale  => 1.0,            # overall scaling factor
+   noemindist => 0,             # use minimum distance for multiple atoms
 
    nlambda   => 10,             # number of windows for PERT sampling
    pequi     => 1000,           # number of equilibration steps
@@ -555,6 +560,11 @@ sub new {
    langsel   => undef,          # CHARMM atom selection to apply Langevin friction
    langfile  => undef,          # file for setting friction coefficients
    langupd   => undef,          # update of Langevin region
+
+   mcprmc    => 0,              # turn on MC barostat
+   mctens    => 0.0,            # MC barostat reference surface tension
+   mcprzz    => 1.0,            # MC barostat pressure in atm at z dimension
+   mciprsf   => 15.0,           # MC barostat sampling frequency
 
    openmm    => 0,              # turn on to use openMM 
    domdec    => undef           # set to nx:ny:nz OR just nx to turn on DOMDEC
@@ -748,6 +758,10 @@ sub loadParameters {
   } elsif ($self->{par}->{param} eq "eef1") {
     $topfile="$datadir/toph19_eef1.inp";
     $parfile="$datadir/param19_eef1.inp";
+    $self->{par}->{nblisttype}="bygr";
+  } elsif ($self->{par}->{param} eq "eef1.36") {
+    $topfile="$datadir/top_all36_prot_lipid_eef1.1.rtf";
+    $parfile="$datadir/par_all36_prot_lipid_eef1.1.prm";
     $self->{par}->{nblisttype}="bygr";
   } elsif ($self->{par}->{param} eq "eef1.1") {
     $topfile="$datadir/toph19_eef1.1.inp";
@@ -1042,6 +1056,8 @@ sub setupEnergy {
       $self->setupEEF1();
     } elsif ($self->{par}->{imm1} && !$self->{_haveASP}) {
       $self->setupIMM1();
+    } elsif ($self->{par}->{imm1p36} && !$self->{_haveASP}) {
+      $self->setupIMM1();
     } elsif ($self->{par}->{sasa} && !$self->{_haveASP}) {
       $self->setupSASA();
     } elsif ($self->{par}->{og} && !$self->{_haveOG}) {
@@ -1111,7 +1127,7 @@ sub setupFromPSF {
 
   foreach my $c ( @{$mol->{chain}} ) {
     for my $r ( @{$c->{res}} ) {
-      if ($r->{name} eq "TIP3" || $r->{name} eq "HOH"){ 
+      if ($r->{name} eq "TIP3" || $r->{name} eq "TIP4" || $r->{name} eq "HOH"){ 
 	$self->{explicitWater}=1;
 	$self->{par}->{periodic}=1 unless (defined $self->{par}->{periodic});
       }
@@ -1299,7 +1315,7 @@ sub setupFromMolecule {
       } elsif ($self->{par}->{param} eq "19" || $self->{par}->{param} eq "eef1" || $self->{par}->{param} eq "eef1.1") {
 	$first="firs amnp";
 	$last="last cbxp";
-      } elsif ($self->{par}->{param} =~ /22/ || $self->{par}->{param} =~ /27/ || $self->{par}->{param}=~ /36/) {
+      } elsif ($self->{par}->{param} =~ /22/ || $self->{par}->{param} =~ /27/ || $self->{par}->{param}=~ /36/ || $self->{par}->{param} eq "eef1.36") {
 	$first="firs ace";
 	$last="last ct3";
       }	
@@ -1318,7 +1334,7 @@ sub setupFromMolecule {
     $segmol->writePDB($fname,translate=>getConvType($self->{par}->{param}),ssbond=>0);
 
     if (!$readonly) {
-      if ($f->{name} eq "TIP3" || $f->{name} eq "HOH" || $f->{name}=~/^W/) {
+      if ($f->{name} eq "TIP3" || $f->{name} eq "TIP4" || $f->{name} eq "HOH" || $f->{name}=~/^W/) {
 	my $trec={};
 	$trec->{fname}=$fname;
 	$trec->{gen}="generate $f->{name} setup noangl nodihe";
@@ -1478,6 +1494,7 @@ sub setupFromMolecule {
     $self->_sendCommand("ic param");
     if (($self->{par}->{param} eq "19" || $self->{par}->{param} =~ /22/ ||
          $self->{par}->{param} eq "27" || $self->{par}->{param} eq "36" ||
+         $self->{par}->{param} eq "eef1.36"  ||
 	 $self->{par}->{param} eq "eef1"  || $self->{par}->{param} eq "eef1.1" || $self->{par}->{param} eq "lpdb")) {
       my $nic=$self->reportVariable("NIC");
       if ($nic>0) {
@@ -1762,7 +1779,7 @@ sub setupIMM1 {
   my $softvdw="";
   $softvdw="SOFT" if ($self->{par}->{softvdw});  
 
-  $self->_sendCommand("eef1 setup membrane slvt water slv2 chex nsmth 10 width $self->{par}->{imm1width} temp $self->{par}->{dyntemp} unit 93 name \"$fname\" aemp 0.85");
+  $self->_sendCommand("eef1 setup membrane slvt water slv2 chex nsmth 10 width $self->{par}->{imm1width} temp $self->{par}->{dyntemp} unit 93 name \"$fname\" aemp $self->{par}->{imm1aemp}");
   $self->_sendCommand("update ctonnb 7.0 ctofnb 9.0 cutnb 10.0 group rdie $softvdw switch vswitch");
 
   $self->{_haveASP}=1;
@@ -2575,7 +2592,10 @@ sub _setupGBMVA {
     my $t=$self->{par}->{gbmvaextra};
     $cmd.="$t -\n";
   }
-
+  #if (defined $self->{par}->{gbmvexcl} && $self->{par}->{hdgbvdw}) {
+  #  $cmd.="EXCLGB -\n";
+  #  $self->_sendCommand("select $sel end")
+  #}
   if (defined $self->{par}->{hdgbprofile}) {
     $self->_sendCommand("open unit 89 name \"$self->{par}->{hdgbprofile}\" read form");
     $cmd.="UNEPS 89 -\n";
@@ -2705,6 +2725,7 @@ sub noeRestraints {
   } elsif (defined $self->{par}->{xnoerest} && -r $self->{par}->{xnoerest}) {
     my $inp=&GenUtil::getInputFile($self->{par}->{xnoerest});
     while(<$inp>) {
+      s/\!.*$//;
       if (/assi[a-z]* *\((.*)\) *\((.*)\) *([0-9\.]+) +([0-9\.]+) +([0-9\.]+)/) {
 	my $sel1=$1;
 	my $sel2=$2;
@@ -2723,9 +2744,46 @@ sub noeRestraints {
 	$sel2=~s/\#/\*/g;
 
 	push(@{$noelist},
-	     sprintf("assign rexp %d kmin %f kmax %f fmax %f rmin %f rmax %f select %s end select %s end\n",
+	     sprintf("assign rexp %d kmin %f kmax %f fmax %f %s rmin %f rmax %f -\nselect %s end -\nselect %s end\n",
 		     $self->{par}->{noerexp},$self->{par}->{noekmin},$self->{par}->{noekmax},
-		     $self->{par}->{noefmax},$r-$dmin,$r+$dmax,$sel1,$sel2));
+		     $self->{par}->{noefmax},
+                     ($self->{par}->{noemindist}?"MINDIST":""),
+                     $r-$dmin,$r+$dmax,$sel1,$sel2));
+      } elsif (/assi[a-z]* *\((.*)\)\s*$/) {
+	my $sel1=$1;
+	my $sel2="";
+        $_=<$inp>;
+        s/\!.*$//;
+        chomp;
+        if (/\((.*)\)\s+or/) {
+         $sel2=$1.") or (";
+         $_=<$inp>;
+         s/\!.*$//;
+         chomp;
+        }
+        if (/\((.*)\) *([0-9\.]+) +([0-9\.]+) +([0-9\.]+)/) {
+	  $sel2.=$1;
+	  my $r=$2;
+   	  my $dmin=$3;
+	  my $dmax=$4;
+
+ 	  $sel1=~s/and/.and./g;
+	  $sel1=~s/or/.or./g;
+	  $sel1=~s/name/type/g;
+	  $sel1=~s/\#/\*/g;
+
+	  $sel2=~s/and/.and./g;
+	  $sel2=~s/or/.or./g;
+	  $sel2=~s/name/type/g;
+	  $sel2=~s/\#/\*/g;
+
+	  push(@{$noelist},
+	     sprintf("assign rexp %d kmin %f kmax %f fmax %f %s rmin %f rmax %f -\nselect %s end -\nselect %s end\n",
+		     $self->{par}->{noerexp},$self->{par}->{noekmin},$self->{par}->{noekmax},
+		     $self->{par}->{noefmax},
+                     ($self->{par}->{noemindist}?"MINDIST":""),
+                     $r-$dmin,$r+$dmax,$sel1,$sel2));
+        } 
       }
     }
   } else {
@@ -2936,7 +2994,7 @@ sub periodicBoundaries {
     my @sarr=split(/:/,$self->{par}->{solvent});
     $strbyseg=".not. resname ".join(" .and. .not. resname ",@sarr); 
   } else {
-    $strbyseg=".not. resname TIP3 .and. .not. resname HOH .and. .not. resname CLA .and. .not. resname CLM .and. .not. resname NAP .and. .not. resname SOD .and. .not. resname MG";
+    $strbyseg=".not. resname TIP3 .and. .not. resname TIP4 .and. .not. resname HOH .and. .not. resname CLA .and. .not. resname CLM .and. .not. resname NAP .and. .not. resname SOD .and. .not. resname MG";
   }
 
   if (defined $self->{par}->{imbyres}) {
@@ -2952,7 +3010,7 @@ sub periodicBoundaries {
     my @sarr=split(/:/,$self->{par}->{solvent});
     $strbyres="resname ".join(" .or. resname ",@sarr); 
   } else {
-    $strbyres="resname TIP3 .or. resname HOH .or. resname CLA .or. resname CLM .or. resname NAP .or. resname SOD .or. resname MG";
+    $strbyres="resname TIP3 .or. resname TIP4 .or. resname HOH .or. resname CLA .or. resname CLM .or. resname NAP .or. resname SOD .or. resname MG";
   }
   
   my $xcen=$self->{par}->{imbysegx};
@@ -3280,6 +3338,12 @@ sub runDynamics {
     $cmd.=" omm ";
     if ($self->{par}->{lang}) {
       $cmd.=sprintf("gamma %lf ",$self->{par}->{langfbeta});
+      if ($self->{par}->{mcprmc}) {
+        $cmd.=" prmc ";
+        $cmd.=sprintf("tens %f ",$self->{par}->{mctens});
+        $cmd.=sprintf("przz %f ",$self->{par}->{mcprzz});
+        $cmd.=sprintf("iprsfrq %f ",$self->{par}->{mciprsf});
+      }
     }
   }
   
@@ -3999,10 +4063,10 @@ die "Bias type is not defined\n" if (!defined $par{type});
     if ((defined $par{sidechains}) && ($par{sidechains} eq "on")) {
       $def="define bb sele (type ca .or. type c .or. type n .or. type o ) end";
       $self->_sendCommand($def);
-      $def="define sd sele .not. resname tip3 .and. .not. (bb .or. hydrogen) end";
+      $def="define sd sele .not. resname tip3 .and. .not. resname tip4 .and. .not. (bb .or. hydrogen) end";
       $self->_sendCommand($def);
     } else {
-      $def="define aa sele .not. resname tip3 .and. .not. hydrogen end";
+      $def="define aa sele .not. resname tip3 .and. not resname tip4 .and. .not. hydrogen end";
       $self->_sendCommand($def);
     }
     $cmd .= " force " . $par{force};
@@ -6439,6 +6503,9 @@ sub _getpar {
       } 
       if (($n eq "imm1") && $arg{$n}) {
         $self->{par}->{param}="eef1.1";
+      }
+     if (($n eq "imm1p36") && $arg{$n}) {
+        $self->{par}->{param}="eef1.36";
       }
     } else {
       printf STDERR "Unknown CHARMM parameter $n will be ignored!\n";

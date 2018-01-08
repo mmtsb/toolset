@@ -333,6 +333,20 @@ sub secFromPredict {
 sub secFromDSSP {
   my $self=shift;
   my $mol=shift;
+  my $full=shift;
+  my $numeric=shift;
+
+  my %nlookup = ( "." => "0",
+                  "G" => "1",
+                  "H" => "2",
+                  "I" => "3",
+                  "E" => "4",
+                  "B" => "5",
+                  "T" => "6",
+                  "S" => "7");
+
+  $full=0 if (!defined $full);
+  $numeric=0 if (!defined $numeric);
 
   &GenUtil::log("Sequence::secFromDSSP");
 
@@ -362,8 +376,17 @@ sub secFromDSSP {
 	waitpid($pid,0);
 	return 0;
       }
-	
-	$self->getResidue($num)->{secondary}=($sec eq "H")?"H":(($sec eq "E")?"E":"U");
+
+        if ($full) {
+           $sec="." if ($sec!~/[A-Z]/);
+           if ($numeric) {
+   	     $self->getResidue($num)->{secondary}=$nlookup{$sec};
+           } else {
+   	     $self->getResidue($num)->{secondary}=$sec;
+           }
+        } else {
+   	   $self->getResidue($num)->{secondary}=($sec eq "H")?"H":(($sec eq "E")?"E":"U");
+        }
       }
     } elsif (/^ +\#  RESIDUE AA.*/) {
       $readdata=1;
