@@ -153,6 +153,9 @@ sub new {
    extrabonds  => undef,        # turn on and provide extra bonds input file
 
    minsteps  => undef,          # minimize
+   mintinystep => 1.0E-6,
+   minbabystep => 1.0E-2,
+   minlinegoal => 1.0E-4,
   );
 
   $self->{par}=\%parhash;
@@ -578,6 +581,10 @@ sub writeConfigFile {
   }
 
   if (defined $self->{par}->{minsteps} && $self->{par}->{minsteps}>0) {
+#    printf $fout "minimization             on\n";
+    printf $fout "minTinyStep              %e\n",$self->{par}->{mintinystep};
+    printf $fout "minBabyStep              %e\n",$self->{par}->{minbabystep};
+    printf $fout "minLineGoal              %e\n",$self->{par}->{minlinegoal};
     printf $fout "minimize                 %d\n",$self->{par}->{minsteps};
     printf $fout "reinitvels               %f\n",$self->{par}->{dyntemp};
     printf $fout "run                      %d\n",$self->{par}->{dynsteps};

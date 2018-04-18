@@ -492,6 +492,15 @@ sub dihedral {
   
   my $np1=sqrt($px1*$px1+$py1*$py1+$pz1*$pz1);
 
+  if ($np1<=0.00001) {
+    printf STDERR "np1 zero: %s:%s:%s:%d:%s %s:%s:%s:%d:%s %s:%s:%s:%d:%s %s:%s:%s:%d:%s\n",
+     $c1->{seg},$c1->{chain},$c1->{resname},$c1->{resnum},$c1->{atomname},
+     $c2->{seg},$c2->{chain},$c2->{resname},$c2->{resnum},$c2->{atomname},
+     $c3->{seg},$c3->{chain},$c3->{resname},$c3->{resnum},$c3->{atomname},
+     $c4->{seg},$c4->{chain},$c4->{resname},$c4->{resnum},$c4->{atomname};
+     return 0.0;
+  }
+
   $px1/=$np1;
   $py1/=$np1;
   $pz1/=$np1;
@@ -501,6 +510,15 @@ sub dihedral {
   my $pz2=$dx43*$dy23-$dx23*$dy43;
   my $np2=sqrt($px2*$px2+$py2*$py2+$pz2*$pz2);
  
+  if ($np2<=0.00001) {
+    printf STDERR "np2 zero: %s:%s:%s:%d:%s %s:%s:%s:%d:%s %s:%s:%s:%d:%s %s:%s:%s:%d:%s\n",
+     $c1->{seg},$c1->{chain},$c1->{resname},$c1->{resnum},$c1->{atomname},
+     $c2->{seg},$c2->{chain},$c2->{resname},$c2->{resnum},$c2->{atomname},
+     $c3->{seg},$c3->{chain},$c3->{resname},$c3->{resnum},$c3->{atomname},
+     $c4->{seg},$c4->{chain},$c4->{resname},$c4->{resnum},$c4->{atomname};
+     return 0.0;
+  }
+
   $px2/=$np2;
   $py2/=$np2;
   $pz2/=$np2;

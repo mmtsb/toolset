@@ -16,6 +16,7 @@ sub usage {
   printf STDERR "         [-s min:max[=...] min:max[=...]]\n";
   printf STDERR "         [-align fasta]\n";
   printf STDERR "         [-mem]\n";
+  printf STDERR "         [-showmatrix]\n";
   exit 1;
 }
 
@@ -46,6 +47,7 @@ my $useseg=0;
 my $alignfile;
 
 my $mem;
+my $showmatrix=0;
 
 my $slist=();
 
@@ -64,6 +66,9 @@ while ($#ARGV>=0 && !$done) {
     shift @ARGV;
     $fraglist=&GenUtil::fragListFromOption(shift @ARGV);
     $exclmode=1;
+  } elsif ($ARGV[0] eq "-showmatrix") {
+    shift @ARGV;
+    $showmatrix=1;
   } elsif ($ARGV[0] eq "-s") {
     shift @ARGV;
     my $trec={};
@@ -108,7 +113,7 @@ if ($#{$slist}<0) {
   $cmpmol->setValidResidues($fraglist,$exclmode)
     if (defined $fraglist);
   
-  $analyze->lsqfit($cmpmol,$selmode,$warn,$resnumonly,$alignfile,$useseg,0,$mem);
+  $analyze->lsqfit($cmpmol,$selmode,$warn,$resnumonly,$alignfile,$useseg,$showmatrix,$mem);
   $cmpmol->writePDB("-",translate=>"CHARMM22");
 } else {
   my $newmol=Molecule::new();

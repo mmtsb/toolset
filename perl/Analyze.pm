@@ -231,7 +231,13 @@ sub rmsd {
     my $rname=$cmpatom->{$key}->{resname};
     my $rnum=$cmpatom->{$key}->{resnum};
     my $chain=$cmpatom->{$key}->{chain};
-    my $ctag=(defined $chain)?"_$chain":"_";
+    my $seg=$cmpatom->{$key}->{seg};
+    my $ctag="_";
+    if (defined $useseg && $useseg) {
+      $ctag="_$seg"; 
+    } elsif (defined $chain) {
+      $ctag="_$chain";
+    }
 
     if (!defined $refatom->{$key} && !defined $refatom->{$akey}) {
       printf STDERR "cannot find matching atom for %s\n",$key
@@ -2036,11 +2042,10 @@ sub chi5 {
 sub phipsi {
   my $mol=shift;
 
-  my %cinx;
-  my %cainx;
-  my %ninx;
-
   foreach my $c ( @{$mol->activeChains()} ) {
+    my %cinx;
+    my %cainx;
+    my %ninx;
     foreach my $a ( @{$c->{atom}} ) {
       my $key="$a->{chain}$a->{resnum}";
       my $rm=$a->{resnum}-1;
@@ -2057,9 +2062,7 @@ sub phipsi {
       $cainx{$keyp}=$a if ($a->{atomname} eq "CAT");
       $cainx{$keym}=$a if ($a->{atomname} eq "CAY");
     }
-  }
 
-  foreach my $c ( @{$mol->activeChains()} ) {
     foreach my $r ( @{$c->{res}} ) {
       if ($r->{valid}) {
 	my $key="$r->{chain}$r->{num}";

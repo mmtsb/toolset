@@ -1395,7 +1395,7 @@ sub setupFromMolecule {
          }
         }
       }
-      if ($self->{par}->{autogen} && $f->{name}=~/$self->{par}->{autogen}/) {
+      if ($self->{par}->{autogen} && $self->{par}->{autogen}!=1 && $f->{name}=~/$self->{par}->{autogen}/) {
 	$self->_sendCommand("auto angle dihe");
       }	
     }

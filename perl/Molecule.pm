@@ -4058,7 +4058,6 @@ sub replaceIons {
   my $self=shift;
   my $ions=shift;
 
-
   return if (!defined $ions || $#{$ions}<0);
 
   my @wat=();
@@ -4124,6 +4123,138 @@ sub replaceIons {
  
       push(@{$chainrec->{res}},$resrec);
     } 
+  } 
+}
+
+## method: replaceWaterWithMolecule(mol, num)
+## replaces water molecules randomly with small molecules
+
+sub replaceWaterWithMolecule {
+  my $self=shift;
+  my $rmol=shift;
+  my $cutoff=shift;
+  my $rnum=shift;
+
+  my @wat=();
+  my @other=();
+  foreach my $c ( @{$self->{chain}} ) {
+    foreach my $r ( @{$c->{res}} ) {
+       if ($r->{name} eq "TIP3" || $r->{name} eq "TIP4" || $r->{name} eq "HOH") {
+         $r->{atom}=$c->{atom}->[$r->{start}];
+         push(@wat,$r);
+       } 
+    }
+    foreach my $a ( @{$c->{atom}} ) {
+       if ($a->{resname} ne "TIP3" && $a->{resname} ne "TIP4" && $a->{resname} ne "HOH") {
+         push(@other,$a);
+       }
+    }
+  }
+
+  my $ainx=1; 
+  my $rinx=1;
+  my $chain="X";
+  my $chainrec=$self->{chainlookup}->{$chain};
+  my $newchain=1;
+  if (defined $chainrec) {
+    $chain="Y";
+    $chainrec=$self->{chainlookup}->{$chain};
+    if (defined $chainrec) {
+      $chain="Z";
+      $chainrec=$self->{chainlookup}->{$chain};
+      if (defined $chainrec) {
+        $chain="+"; 
+        $chainrec=$self->{chainlookup}->{$chain};
+        if (defined $chainrec) {
+          $ainx=$chainrec->{atom}->[$#{$chainrec->{atom}}]->{atominx}+1;
+          $rinx=$chainrec->{res}->[$#{$chainrec->{res}}]->{num}+1;
+          $newchain=0;
+        } 
+      }
+    }
+  }
+  if ($newchain) {
+    $chainrec=$self->_newChain($chain);
+  }
+
+  for (my $ii=0; $ii<$rnum; $ii++) {
+    my $iw;
+    my $rw;
+    my $wx;
+    my $wy;
+    my $wz;
+
+    my $clash=0;
+    do {
+     do {
+      $iw=int(rand($#wat+1));
+      $rw=$wat[$iw];
+     } while ($rw->{valid}==0);
+
+     $wx=$rw->{atom}->{xcoor};
+     $wy=$rw->{atom}->{ycoor};
+     $wz=$rw->{atom}->{zcoor};
+
+     $clash=0; 
+     foreach my $a ( @other ) {
+       my $dx=$wx-$a->{xcoor};
+       my $dy=$wy-$a->{ycoor};
+       my $dz=$wz-$a->{zcoor};
+       my $d=sqrt($dx*$dx+$dy*$dy+$dz*$dz);
+       $clash=1 if ($d<$cutoff);
+     } 
+    } while ($clash);
+     
+    $rw->{valid}=0;
+
+    $rmol->center();
+    $rmol->rotatex(rand(360));
+    $rmol->rotatez(rand(360));
+    $rmol->rotatex(rand(360));
+
+    foreach my $tw ( @wat ) {
+      foreach my $ra ( @{$rmol->{chain}->[0]->{atom}} ) {
+        my $dx=$wx+$ra->{xcoor}-$tw->{atom}->{xcoor};
+        my $dy=$wy+$ra->{ycoor}-$tw->{atom}->{ycoor};
+        my $dz=$wz+$ra->{zcoor}-$tw->{atom}->{zcoor};
+        my $d=sqrt($dx*$dx+$dy*$dy+$dz*$dz);
+        if ($d<1.5) {
+          $tw->{valid}=0;
+        }
+      }
+    } 
+
+    my $start=$#{$chainrec->{atom}}+1;
+
+    foreach my $ra ( @{$rmol->{chain}->[0]->{atom}} ) {
+      my $pdbrec={};
+      $pdbrec->{atominx}=$ainx++;
+      $pdbrec->{atomname}=$ra->{atomname};
+      $pdbrec->{resname}=$ra->{resname};
+      $pdbrec->{resnum}=$rinx;
+      $pdbrec->{chain}=$chainrec->{id};
+      $pdbrec->{xcoor}=$wx+$ra->{xcoor};
+      $pdbrec->{ycoor}=$wy+$ra->{ycoor};
+      $pdbrec->{zcoor}=$wz+$ra->{zcoor};
+      $pdbrec->{hyd}=0;
+      $pdbrec->{aux1}=0.0;
+      $pdbrec->{aux2}=0.0;
+      $pdbrec->{seg}="";
+      $pdbrec->{valid}=1;
+      push (@{$chainrec->{atom}}, $pdbrec);
+    }
+
+    my $resrec={};
+
+    $resrec->{name}=$rmol->{chain}->[0]->{res}->[0]->{name};
+    $resrec->{num}=$rinx++;
+    $resrec->{chain}=$chainrec->{id};
+    $resrec->{start}=$start;
+    $resrec->{end}=$#{$chainrec->{atom}};
+    $resrec->{valid}=1;
+    $resrec->{seg}="";
+ 
+    push(@{$chainrec->{res}},$resrec);
   } 
 }
 

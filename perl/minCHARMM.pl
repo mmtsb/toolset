@@ -11,7 +11,7 @@ sub usage {
   printf STDERR "         [-psf PSFfile CRDfile]\n";
   printf STDERR "         [-mol2 MOL2file]\n";
   printf STDERR "         [-crdout]\n";
-  printf STDERR "         [-nochain]\n";
+  printf STDERR "         [-nochain] [-splitseg]\n";
   printf STDERR "         [-l [ca|cb|cab|heavy] force self|refpdb min:max[=...]]\n";
   printf STDERR "         [-cons [ca|cb|cab|heavy] self|refpdb min:max[_force][=...]]\n";
   printf STDERR "         [-hmcm chainFile min:max[_force][=...]]\n";
@@ -55,6 +55,7 @@ my $pdbcomp;
 
 my $crdout=0;
 my $nochainoutput=0;
+my $splitseg=0;
 
 my $customfile;
 
@@ -151,6 +152,9 @@ while ($#ARGV>=0 && !$done) {
   } elsif ($ARGV[0] eq "-nochain") {
     shift @ARGV;
     $nochainoutput=1;
+  } elsif ($ARGV[0] eq "-splitseg") {
+    shift @ARGV;
+    $splitseg=1;
   } elsif ($ARGV[0] eq "-custom") {
     shift @ARGV;
     $customfile=shift @ARGV;
@@ -224,7 +228,7 @@ if ($crdout) {
   $charmm->writePDB($chmoutpdb);
 
   my $outmol=Molecule::new();
-  $outmol->readPDB($chmoutpdb,translate=>&CHARMM::getConvType($charmm->{par}->{param}),chainfromseg=>(defined $psffile || $nochainoutput)?0:1);
+  $outmol->readPDB($chmoutpdb,translate=>&CHARMM::getConvType($charmm->{par}->{param}),chainfromseg=>(defined $psffile || $nochainoutput)?0:1,splitseg=>($splitseg)?1:0);
 
   $outmol->setSSBonds($charmm->{molecule}->getSSBonds());
   $outmol->writePDB("-",translate=>"CHARMM22");

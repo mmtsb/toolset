@@ -33,6 +33,7 @@ sub usage {
   printf STDERR "         [-solvate] [-cutoff value] [-solvcut value]\n";
   printf STDERR "         [-octahedron] [-cubic]\n";
   printf STDERR "         [-ions NAME:num[=NAME:num]]\n"; 
+  printf STDERR "         [-replace PDB:num]\n";
   printf STDERR "         [-info] [-listseg] [-residues] [-rescount]\n";
   printf STDERR "         [-fill inx:seq]\n";
   printf STDERR "         [-mol2]\n";
@@ -104,6 +105,8 @@ my $m31=0;
 my $m32=0;
 my $m33=1.0;
 my $ions=();
+my $replacepdb;
+my $replacenum;
 my $info=0;
 my $listseg=0;
 my $residues=0;
@@ -183,6 +186,9 @@ while ($#ARGV>=0) {
       ($trec->{name},$trec->{num})=split(/:/,$in);
       push(@{$ions},$trec);
     }
+  } elsif ($ARGV[0] eq "-replace") {
+    shift @ARGV;
+    ($replacepdb,$replacenum)=split(/:/,shift @ARGV);
   } elsif ($ARGV[0] eq "-ssbond") {
     shift @ARGV;
     foreach my $s (split(/=/,shift @ARGV)) {
@@ -602,6 +608,25 @@ if (defined $solvate && $solvate) {
 if ($#{$ions}>=0) {
   $mol->replaceIons($ions);
   $mol=$mol->clone(1);
+}
+
+if (defined $replacepdb && -r $replacepdb && $replacenum>0) {
+  my $rmol=Molecule::new();
+  $rmol->readPDB($replacepdb);
+  $rmol->center();
+  if ($#{$rmol->{chain}}>0) {
+    printf STDERR "molecule in %s has multiple chains\n",$replacepdb;
+  } elsif ($#{$rmol->{chain}->[0]->{res}}>0) {
+    printf STDERR "molecule in %s has multiple residues\n",$replacepdb;
+  } else {
+    my $rgyr=&Analyze::radiusOfGyration($rmol);
+    if ($rgyr>5) {
+       printf STDERR "molecule in %s is too large\n",$replacepdb;
+    } else {
+       $mol->replaceWaterWithMolecule($rmol,$rgyr*2.5,$replacenum);
+       $mol=$mol->clone(1);
+    }
+  }
 }
 
 $mol->renumberWaterSegments() if ($renumwatersegs);

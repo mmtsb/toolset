@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 
+
 # calculates the radius of gyration for a protein structure
 #
 # http://mmtsb.scripps.edu/doc/rgyr.pl.html

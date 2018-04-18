@@ -58,10 +58,10 @@ my $namd=&NAMD::new();
 $namd->setParameter(%par);
 
 my $mol=Molecule::new();
-$mol->readPDB($fname);
+$mol->readPDB($fname,splitseg=>1);
 
-#open OUT,"| $exec";
-open OUT,">psfinp";
+open OUT,"| $exec";
+#open OUT,">psfinp";
 
 foreach my $n ( split(/:/,$namd->{par}->{xtop}) ) {
   printf OUT "topology %s\n",$n;
@@ -75,6 +75,7 @@ my @pdbs=();
 my $inx=1;
 my $segnames=$mol->getSegNames();
 for my $s ( @{$segnames} ) {
+  printf STDERR "seg: %s\n",$s->{name};
   $mol->setValidSelection($s->{name}.":");
   my $smol=$mol->clone(1);
   my $pdbfile=sprintf("t%d%d",$$,$inx);
@@ -123,11 +124,10 @@ for my $s ( @{$segnames} ) {
 printf OUT "writepsf $psfout\n" if (defined $psfout);
 printf OUT "writepdb $pdbout\n" if (defined $pdbout);
 
-
 close OUT;
 
 foreach my $f ( @pdbs ) {
-#  system "rm -f $f\n";
+  system "rm -f $f\n";
 }
 
 1;

@@ -13,9 +13,12 @@ sub usage {
   printf STDERR "          [-extract name]\n";
   printf STDERR "          [-ensdir dir] [-ens tag]\n";
   printf STDERR "          [-rms CA|CAB|C|O|N|side|back|all ref] [-useseg]\n";
+  printf STDERR "          [-rmsl min:max[...]]\n";
   printf STDERR "          [-qscore ref] [-boxsize]\n";
   printf STDERR "          [-wrapseg]\n";
-  printf STDERR "          [-average] [-fit ref] [-fitsel cab|ca|cb|heavy] [-fitresnumonly]\n";
+  printf STDERR "          [-average] [-fit] [-fitsel cab|ca|cb|heavy] [-fitresnumonly]\n";
+  printf STDERR "          [-fitl min:max[...]]\n";
+  printf STDERR "          [-ref ref]\n";
   printf STDERR "          [-psf file]\n";
   printf STDERR "          [-atoms from:to]\n";
   exit 1;
@@ -70,6 +73,8 @@ my $wrapseg=0;
 
 my $useseg=0;
 my $lsqfit=0;
+my $fraglist;
+my $fitfraglist;
 
 while ($#ARGV>=0) {
   if ($ARGV[0] eq "-inx") {
@@ -97,6 +102,12 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-fit") {
     shift @ARGV;
     $lsqfit=1;
+  } elsif ($ARGV[0] eq "-rmsl") {
+    shift @ARGV;
+    $fraglist=&GenUtil::fragListFromOption(shift @ARGV);
+  } elsif ($ARGV[0] eq "-fitl") {
+    shift @ARGV;
+    $fitfraglist=&GenUtil::fragListFromOption(shift @ARGV);
   } elsif ($ARGV[0] eq "-multi") {
     shift @ARGV;
     $multi=shift @ARGV;
@@ -122,7 +133,7 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-wrapseg") {
     shift @ARGV;
     $wrapseg=1;
-  } elsif ($ARGV[0] eq "-fit") {
+  } elsif ($ARGV[0] eq "-ref") {
     shift @ARGV;
     $ref=shift @ARGV;
   } elsif ($ARGV[0] eq "-fitsel") {
@@ -419,6 +430,7 @@ foreach my $dcd ( @dcdfiles ) {
       $cmpmol->readPDB($pdbtemplate);
     }
 
+
     for ($i=1; $itot<=$to && $i<=$nfiles; $i++) {
       $itot++;
 
@@ -505,7 +517,14 @@ foreach my $dcd ( @dcdfiles ) {
         }
 
 	if (defined $rmsmode) {
+          $fitfraglist=$fraglist
+            if (defined $fraglist && !defined $fitfraglist);
+
+          $cmpmol->setValidResidues($fitfraglist,0) if (defined $fitfraglist);
           $analyze->lsqfit($cmpmol,$selmode,0,0,undef,$useseg) if ($lsqfit);
+          $cmpmol->resetValidResidues() if (!defined $fraglist && defined $fitfraglist);
+          $cmpmol->setValidResidues($fraglist,0) if (defined $fraglist);
+
           my $rmsd=$analyze->rmsd($cmpmol,0,undef,0,undef,$useseg);
           printf "%d %f %f\n",($itot),($itot)*$deltat,$rmsd->{$rmsmode};
 	} elsif (defined $qscore) {
