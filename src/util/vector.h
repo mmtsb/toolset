@@ -11,6 +11,14 @@ class Vector {
  private:
   double xval,yval,zval;
 
+  double anint(double x) {
+    if (x>=0) {
+     return floor(x+0.5);
+    } else {
+     return -floor(0.5-x);
+    }
+  }
+
  public:
   Vector(double xi=0.0, double yi=0.0, double zi=0.0) : 
     xval(xi), yval(yi), zval(zi) {}
@@ -160,6 +168,12 @@ class Vector {
 
   inline double dot(const Vector& v) {
      return (xval*v.xval + yval*v.yval + zval*v.zval);
+  }
+
+  inline void pbc(Vector box) {
+     xval-=anint(xval/box.x())*box.x();
+     yval-=anint(yval/box.y())*box.y();
+     zval-=anint(zval/box.z())*box.z();
   }
 };
 
