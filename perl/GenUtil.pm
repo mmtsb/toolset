@@ -21,7 +21,7 @@ use Sys::Hostname;
 use vars qw ( $pi $logfile $scriptloc $fortranheadersize $version );
 
 BEGIN {
-  $version="1.4 Feig group (2011)";
+  $version="1.5 Feig group (2018)";
   $pi=3.141592654;
   $fortranheadersize=-1;
   $fortranheadersize=$ENV{FORTRANHEADERSIZE} 
@@ -538,6 +538,51 @@ sub dihedral {
   if ($dp233>0.0) {
     $angle=-$angle;
   }
+
+  return $angle/$pi*180.0;
+}
+
+## function: $value = distance(coor1,coor2)
+## calculates the distance between two atoms
+## by the <mark>coor*</mark> arguments. 
+
+sub distance {
+  my $c1=shift;
+  my $c2=shift;
+
+  my $dx=$c1->{xcoor}-$c2->{xcoor};
+  my $dy=$c1->{ycoor}-$c2->{ycoor};
+  my $dz=$c1->{zcoor}-$c2->{zcoor};
+
+  my $d=sqrt($dx*$dx+$dy*$dy+$dz*$dz);
+  return $d;
+}
+
+## function: $value = angle(coor1,coor2,coor3)
+## calculates the distance between two atoms
+## by the <mark>coor*</mark> arguments. 
+
+sub angle {
+  my $c1=shift;
+  my $c2=shift;
+  my $c3=shift;
+
+  my $dx12=$c1->{xcoor}-$c2->{xcoor};
+  my $dy12=$c1->{ycoor}-$c2->{ycoor};
+  my $dz12=$c1->{zcoor}-$c2->{zcoor};
+
+  my $dx32=$c3->{xcoor}-$c2->{xcoor};
+  my $dy32=$c3->{ycoor}-$c2->{ycoor};
+  my $dz32=$c3->{zcoor}-$c2->{zcoor};
+
+  my $d12=sqrt($dx12*$dx12+$dy12*$dy12+$dz12*$dz12);
+  my $d32=sqrt($dx32*$dx32+$dy32*$dy32+$dz32*$dz32);
+  
+  my $d123=$dx12*$dx32+$dy12*$dy32+$dz12*$dz32;
+  $d123/=($d12*$d32);
+  my $ts=1.0-$d123*$d123;
+  $ts=($ts<0.0)?0.0:sqrt($ts);
+  my $angle=$pi/2.0-atan2($d123,$ts);
 
   return $angle/$pi*180.0;
 }
@@ -1313,7 +1358,7 @@ sub parsePar {
     if (defined $val) {
       $hdat->{$key}=$val;
     } else {
-      if ($key=~/^no(.+)$/) {
+      if ($key!~/^noe/ && $key=~/^no(.+)$/) {
 	$hdat->{$1}=0;
       } else {
 	$hdat->{$key}=1;
@@ -1380,6 +1425,28 @@ sub asin {
   my $val=shift;
   
   return atan2($val,sqrt(1.0-$val*$val));
-} 
+}
+
+sub nint {
+  my $x = $_[0];
+  my $n = int($x);
+  if ( $x > 0 ) {
+    if ( $x-$n > 0.5) {
+      return $n+1;
+    }
+    else {
+      return $n;
+    }
+  }
+  else {
+    if ( $n-$x > 0.5) {
+      return $n-1;
+    }
+    else {
+      return $n;
+    }
+  }
+}
+ 
 
 1;

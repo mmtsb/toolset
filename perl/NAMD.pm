@@ -580,6 +580,17 @@ sub writeConfigFile {
     printf $fout "FirstLdbStep 100000000000\n";
   }
 
+#  printf $fout "printBadContacts    True\n";
+  if (defined $customfile && -r $customfile) {
+    open CINP,"$customfile";
+    while (<CINP>) {
+      print $fout $_;
+    }
+    close CINP;
+  }
+
+  printf $fout "\n";
+
   if (defined $self->{par}->{minsteps} && $self->{par}->{minsteps}>0) {
 #    printf $fout "minimization             on\n";
     printf $fout "minTinyStep              %e\n",$self->{par}->{mintinystep};
@@ -592,16 +603,7 @@ sub writeConfigFile {
     printf $fout "numsteps                 %d\n",$self->{par}->{dynsteps};
   }
 
-
   printf $fout "\n";
-
-  if (defined $customfile && -r $customfile) {
-    open CINP,"$customfile";
-    while (<CINP>) {
-      print $fout;
-    }
-    close CINP;
-  }
 
   close $fout;
   undef $fout;

@@ -151,9 +151,13 @@ if (defined $psffile) {
 $charmm->setupEnergy();
 $charmm->noeRestraints();
 
-if (defined $customfile && &GenUtil::checkFile($customfile)) {
-  my $custom=&GenUtil::readData(&GenUtil::getInputFile($customfile));
-  $charmm->stream($custom);
+if (defined $customfile) {
+  foreach my $c ( split(/:/,$customfile))  {
+    if (&GenUtil::checkFile($c)) {
+      my $custom=&GenUtil::readData(&GenUtil::getInputFile($c));
+      $charmm->stream($custom);
+    }
+  }
 }
 
 if ($charge) {

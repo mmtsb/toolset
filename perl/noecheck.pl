@@ -67,8 +67,8 @@ $charmm->noeRestraints();
 my $noev=$charmm->getNOEAnalysis();
 
 foreach my $n ( @{$noev} ) {
-  my $a1=sprintf("%d:%s",$n->{res1},$n->{at1});
-  my $a2=sprintf("%d:%s",$n->{res2},$n->{at2});
+  my $a1=sprintf("%s:%d:%s",$n->{seg1},$n->{res1},$n->{at1});
+  my $a2=sprintf("%s:%d:%s",$n->{seg2},$n->{res2},$n->{at2});
   printf "%-5d %-20s %-20s %5.2f %5.2f %5.2f %s\n",
   $n->{inx},$a1,$a2,$n->{rmin},$n->{rmax},$n->{ractual},
   ($n->{violation}>0.001 || $n->{violation}<-0.001)?sprintf("%5.2f",$n->{violation}):"ok";

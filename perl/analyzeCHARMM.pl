@@ -921,7 +921,7 @@ if ($naccu>0) {
 	foreach my $a ( @analyze ) {
 	  if ($a eq "energy") {
 	    my $ener=$charmm->getEnergy();
-	    push(@results,$ener->{total});
+	    push(@results,$ener->{total},$ener->{elec},$ener->{vdwaals},$ener->{bonds},$ener->{angles},$ener->{ureyb},$ener->{dihedrals},$ener->{impropers},$ener->{cmap},$ener->{asp},$ener->{gb},$ener->{pmf1d},$ener->{pmf2d},$ener->{primo},$ener->{user});
 	  } elsif ($a eq "rgyr") {
 	    push(@results,$charmm->analyzeRadiusOfGyration(selection=>$sel1, mass=>$mass));
 	  } elsif ($a eq "center") {

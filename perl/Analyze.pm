@@ -675,6 +675,7 @@ sub _translateRotate {
 
   my $search;
   $search=":(CA|CA1|CB)\$" if ($selmode eq "cab");
+  $search=":(CA|CA1|CB|P)\$" if ($selmode eq "cabp");
   $search=":(CA|CA1)\$"      if ($selmode eq "ca");
   $search=":CB\$"      if ($selmode eq "cb");
   $search=":(CA|CA1|P)\$" if ($selmode eq "cap");
@@ -1632,27 +1633,35 @@ sub contactList {
 
   my $clist=();
 
-  foreach my $c ( @{$mol->activeChains()} ) {
-    for (my $ir=0; $ir<=$#{$c->{res}}; $ir++) {
-      my $r1=$c->{res}->[$ir];
-      for (my $jr=$ir+1; $jr<=$#{$c->{res}}; $jr++) {
-	my $r2=$c->{res}->[$jr];
-	if (($r1->{valid} || $r2->{valid}) && 
-	    ($r2->{num}>=$r1->{num}+5 || $r1->{chain} ne $r2->{chain})) {
-	  my $mind=$mol->minDistance($r1,$r2);
-	  if ($mind<$minrefdist) {
-	    my $rec={};
-	    $rec->{res1}=$r1->{num};
-	    $rec->{res2}=$r2->{num};
-	    $rec->{chain1}=$r1->{chain};
-	    $rec->{chain2}=$r2->{chain};
-	    $rec->{d}=$mind;
-	    push (@{$clist},$rec);
-	  }
+  my @chains=@{$mol->activeChains()};
+  for (my $ic=0; $ic<=$#chains; $ic++) {
+    my $c=$chains[$ic];
+    for (my $jc=$ic; $jc<=$#chains; $jc++) {
+      my $cc=$chains[$jc];
+#      printf STDOUT "chains: %d %d\n",$ic,$jc;
+      for (my $ir=0; $ir<=$#{$c->{res}}; $ir++) {
+        my $r1=$c->{res}->[$ir];
+        for (my $jr=0; $jr<=$#{$cc->{res}}; $jr++) {
+	  my $r2=$cc->{res}->[$jr];
+	  if (($r1->{valid} || $r2->{valid}) && 
+	      ($r2->{num}>=$r1->{num}+5 || $r1->{chain} ne $r2->{chain})) {
+  	     my $mind=$mol->minDistance($r1,$r2);
+#          printf STDOUT "res: %d %d : %d %d : %d %d : %s %s : %lf %lf\n",$ir,$jr,$r1->{valid},$r2->{valid},$r1->{num},$r2->{num},$r1->{chain},$r2->{chain},$mind,$minrefdist;
+	     if ($mind<$minrefdist) {
+	       my $rec={};
+	       $rec->{res1}=$r1->{num};
+	       $rec->{res2}=$r2->{num};
+	       $rec->{chain1}=$r1->{chain};
+	       $rec->{chain2}=$r2->{chain};
+	       $rec->{d}=$mind;
+	       push (@{$clist},$rec);
+	     }
+           }
 	}
       }
     }    
   }
+#  printf STDOUT "clist has %d elements\n",$#{$clist}+1;
   return $clist;
 }
 
@@ -1747,12 +1756,16 @@ sub writeContacts {
     unless (defined $self->{contactReferenceList});
 
   my $cfile=&GenUtil::getOutputFile(shift);
+  my $betweenchains=shift;
+  $betweenchains=0 if (!defined $betweenchains);
 
   foreach my $c ( @{$self->{contactReferenceList}}) {
     my $tc1=(defined $c->{chain1} && $c->{chain1} ne "")?":$c->{chain1}":"";
     my $tc2=(defined $c->{chain2} && $c->{chain2} ne "")?":$c->{chain2}":"";
-    printf $cfile "%d%s %d%s %f\n",
-    $c->{res1},$tc1,$c->{res2},$tc2,$c->{d};
+    if (!$betweenchains || $tc1 ne $tc2) {
+     printf $cfile "%d%s %d%s %f\n",
+     $c->{res1},$tc1,$c->{res2},$tc2,$c->{d};
+    }
   }
 
   undef $cfile;
@@ -1764,12 +1777,16 @@ sub writeContacts {
 sub radiusOfGyration {
   my $mol=shift;
   my $caonly=shift;
-
-  my ($cx,$cy,$cz);
-  $cx=$cy=$cz=0.0;
+  my $cx=shift;
+  my $cy=shift;
+  my $cz=shift;
 
   my $val=0.0;
   my $ns=0;
+
+  if (!defined $cx || !defined $cy || !defined $cz) { 
+  $cx=$cy=$cz=0.0;
+
 
   foreach my $c ( @{$mol->activeChains()} ) {
     foreach my $a ( @{$c->{atom}} ) {
@@ -1785,13 +1802,16 @@ sub radiusOfGyration {
   $cx/=$ns;
   $cy/=$ns;
   $cz/=$ns;
+  }
 
+  $ns=0;
   foreach my $c ( @{$mol->activeChains()} ) {
     foreach my $a ( @{$c->{atom}} ) {
       if ($a->{atomname}!~/^[0-9]*H/ && (!defined $caonly || $caonly==0 || $a->{atomname} eq "CA")) {
 	my $dx=$a->{xcoor}-$cx;
 	my $dy=$a->{ycoor}-$cy;
 	my $dz=$a->{zcoor}-$cz;
+        $ns++;
 
 	$val+=$dx*$dx+$dy*$dy+$dz*$dz;
       }

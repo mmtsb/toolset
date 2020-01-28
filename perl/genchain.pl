@@ -7,7 +7,7 @@
 #
 
 sub usage {
-  printf STDERR "usage:   genchain.pl [options] [[-m | -s | -pdb | -primo | -primo2] file] | [-rnd num]\n";
+  printf STDERR "usage:   genchain.pl [options] [[-m | -s | -pdb | -primo | -primo2 | -htrna] file] | [-rnd num]\n";
   printf STDERR "options: [-r resolution] [-g gridsize]\n";
   printf STDERR "         [-float] [-center] [-ca]\n";
   printf STDERR "         [-o offsetx offsety offsetz]\n";
@@ -82,6 +82,9 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-primo2") {
     shift @ARGV;
     $mode="primo2";
+  } elsif ($ARGV[0] eq "-htrna") {
+    shift @ARGV;
+    $mode="htrna";
   } elsif ($ARGV[0] eq "-r") {
     shift @ARGV;
     $resolution=shift @ARGV;
@@ -142,7 +145,7 @@ my $atoms;
 $atoms->{max}=0;
 my $a;
 my $c;
-if ($mode eq "primo" || $mode eq "primo2") {
+if ($mode eq "primo" || $mode eq "primo2" || $mode eq "htrna") {
   $mol=Molecule::new();
   $mol->readPDB($filename);
   if (defined $sel){
@@ -155,22 +158,24 @@ if ($mode eq "primo" || $mode eq "primo2") {
 	  $atoms->{max}=$a->{atominx} if ($a->{atominx} > $atoms->{max});
       }
   }
-  my $primo;
+  my $cg;
   if ($mode eq "primo") {
-    $primo=$mol->genPRIMO();
+    $cg=$mol->genPRIMO();
   } elsif ($mode eq "primo2") {
-    $primo=$mol->genPRIMO2();
+    $cg=$mol->genPRIMO2();
+  } elsif ($mode eq "htrna") {
+    $cg=$mol->genHTRNA();
   } else {
     die "unknown mode\n";
   }
   my $natom=0;
-  for $c (@{$primo->activeChains()}){
+  for $c (@{$cg->activeChains()}){
     foreach $a (@{$c->{atom}}){
       $natom++;
     }
   }
   if (!defined $dcdinp && !defined $dcdout){
-    $primo->writePDB(\*STDOUT);
+    $cg->writePDB(\*STDOUT);
   }
   else{
     #Read All-Atom DCD Header
@@ -241,11 +246,13 @@ if ($mode eq "primo" || $mode eq "primo2") {
 	      $start++;
 	  }
       }
-#      $primo=$mol->genPRIMO();
+
       if ($mode eq "primo") {
-        $primo=$mol->genPRIMO();
+        $cg=$mol->genPRIMO();
       } elsif ($mode eq "primo2") {
-        $primo=$mol->genPRIMO2();
+        $cg=$mol->genPRIMO2();
+      } elsif ($mode eq "htrna") {
+        $cg=$mol->genHTRNA();
       } else {
         die "unknown mode\n";
       }
@@ -254,7 +261,7 @@ if ($mode eq "primo" || $mode eq "primo2") {
       $xbuf=undef;
       $ybuf=undef;
       $zbuf=undef;
-      foreach $c (@{$primo->{chain}}){
+      foreach $c (@{$cg->{chain}}){
 	  $xbuf.=pack("f*",@{$c->{xcoor}});
 	  $ybuf.=pack("f*",@{$c->{ycoor}});
 	  $zbuf.=pack("f*",@{$c->{zcoor}});

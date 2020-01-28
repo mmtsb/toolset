@@ -12,6 +12,7 @@ sub usage {
   printf STDERR "         [-read file]\n";
   printf STDERR "         [-list]\n";
   printf STDERR "         [-mindist value]\n";
+  printf STDERR "         [-betweenchains]\n";
   exit 1;
 }
 
@@ -37,6 +38,8 @@ my $readfile;
 
 my $mindist=4.2;
 
+my $betweenchains=0;
+
 my $done=0;
 while ($#ARGV>=0 && !$done) {
   if ($ARGV[0] eq "-help" || $ARGV[0] eq "-h") {
@@ -53,6 +56,9 @@ while ($#ARGV>=0 && !$done) {
   } elsif ($ARGV[0] eq "-mindist") {
     shift @ARGV;
     $mindist=shift @ARGV;
+  } elsif ($ARGV[0] eq "-betweenchains") {
+    shift @ARGV;
+    $betweenchains=1;
   } elsif ($ARGV[0] =~ /^-.+/) {
     printf STDERR "invalid option\n";
     &usage();
@@ -81,7 +87,7 @@ if (defined $pdb1 && defined $pdb2) {
   $mol->setValidResidues($fraglist) if (defined $fraglist);
   $analyze=Analyze::new();
   $analyze->{contactReferenceList}=$analyze->contactList($mol,$mindist);
-  $analyze->writeContacts("-");
+  $analyze->writeContacts("-",$betweenchains);
   exit 0;
 } 
 
@@ -95,10 +101,12 @@ if ($list) {
   foreach my $c ( @{$contlist}) {
     my $r1=$mol->getResidue($c->{res1},$c->{chain1});
     my $r2=$mol->getResidue($c->{res2},$c->{chain2});
-    printf STDOUT " %1s %-9s - %-9s   %f %f\n",
-    (($c->{compd}<4.2)?"*":" "),
-    "$r1->{name}:$r1->{chain}$r1->{num}","$r2->{name}:$r2->{chain}$r2->{num}",
-    $c->{d},$c->{compd};
+    if ($betweenchains == 0 || $c->{chain1} ne $c->{chain2}) {
+     printf STDOUT " %1s %-9s - %-9s   %f %f\n",
+     (($c->{compd}<4.2)?"*":" "),
+     "$r1->{name}:$r1->{chain}$r1->{num}","$r2->{name}:$r2->{chain}$r2->{num}",
+     $c->{d},$c->{compd};
+    }
   }
 }
 

@@ -33,7 +33,10 @@ use Analyze;
 ## lookup hash table for multiple chains
 
 ## data: defchain 
-## currently selected default chain
+## currently selected default chain (chain ID)
+
+## data: selchain
+## currently selected chain (object)
 
 ## data: segmentlist[] -> { name first last }
 ## list of segment IDs
@@ -54,6 +57,7 @@ sub new {
   $self->{chain}=();
   $self->{chainlookup}={};
   $self->{defchain}=undef;
+  $self->{selchain}=undef;
   $self->{segmentlist}=undef;
   $self->{ssbond}=();
   $self->{havesegments}=0;
@@ -81,6 +85,7 @@ sub newInherit {
   $self->{chain}=();
   $self->{chainlookup}={};
   $self->{defchain}=undef;
+  $self->{selchain}=undef;
   $self->{segmentlist}=undef;
   $self->{ssbond}=();
 
@@ -120,6 +125,7 @@ sub readPDB {
   $self->{chain}=();
   $self->{chainlookup}={};
   $self->{defchain}=undef;
+  $self->{selchain}=undef;
   $self->{ssbond}=();
 
   my $lastseg="XXX";
@@ -134,16 +140,26 @@ sub readPDB {
   my $lastainx=0;
 
   my $hetero;
-  
+ 
+  my %sshave; 
  READPDB:
   while(<$fname>) {
     if (/^SSBOND/) {
       my $trec={};
       ($trec->{chain1}=substr($_,15,1))=~s/ //g;
-      ($trec->{resnum1}=substr($_,16,5))=~s/ //g;
+      ($trec->{resnum1}=substr($_,16,5))=~s/[A-Z\s]+//g;
       ($trec->{chain2}=substr($_,29,1))=~s/ //g;
-      ($trec->{resnum2}=substr($_,30,5))=~s/ //g;
-      push(@{$self->{ssbond}},$trec);
+      ($trec->{resnum2}=substr($_,30,5))=~s/[A-Z\s]+//g;
+
+      my $key1=sprintf("%s:%d",$trec->{chain1},$trec->{resnum1});
+      my $key2=sprintf("%s:%d",$trec->{chain2},$trec->{resnum2});
+
+      push(@{$self->{ssbond}},$trec) 
+        unless ($sshave{$key1} || $sshave{$key2} ||
+                ($trec->{chain1} eq $trec->{chain2}  
+              && $trec->{resnum1} == $trec->{resnum2}));
+      $sshave{$key1}=1;
+      $sshave{$key2}=1;
     } elsif (/^MODEL +([0-9]+)/) {
       if ((!defined $par{model} && (!$firstmodelonly || $readmodels==0)) || $1 == $par{model}) {
 	$activemodel=1;
@@ -632,6 +648,7 @@ sub readCRD {
   $self->{chain}=();
   $self->{chainlookup}={};
   $self->{defchain}=undef;
+  $self->{selchain}=undef;
 
   my $lastchain=".";
   my $chainrec;
@@ -677,7 +694,8 @@ sub readCRD {
         
 	$iresnum=$resnum+0;
 
-	$chain=($resname eq "TIP3" || $resname eq "TIP4" || $resname eq "HOH" || $resname eq "SPC")?"+":" ";
+	$chain=($resname eq "TIP3" || $resname eq "TIP4" || $resname eq "HOH" || $resname eq "SPC")?"W":" ";
+        $chain=" ";
 	  
 	$atomname="CD1" 
 	  if ($resname eq "ILE" && $atomname eq "CD");
@@ -754,6 +772,7 @@ sub readMol2 {
   $self->{chain}=();
   $self->{chainlookup}={};
   $self->{defchain}=undef;
+  $self->{selchain}=undef;
 
   my $lastchain=".";
   my $chainrec;
@@ -845,6 +864,7 @@ sub readPSF {
   $self->{chain}=();
   $self->{chainlookup}={};
   $self->{defchain}=undef;
+  $self->{selchain}=undef;
 
   my $lastchain=".";
   my $chainrec;
@@ -854,7 +874,7 @@ sub readPSF {
 
   my $newchain=0;
 
-  my ($atomname, $resname, $resnum, $iresnum, $chain,$seg, $atominx,$charge,$mass);
+  my ($atomname, $atomtype,$resname, $resnum, $iresnum, $chain,$seg, $atominx,$charge,$mass);
   while(<$fname>) {
     if (/^\s*([\d]+) ([\S]...) +([\d]+) +([\S]+) +([\S]+) +([\S]+) +([\S]+) +([\d\.Ee\+\-]+) .+$/) {
         $atominx=$1;
@@ -862,6 +882,7 @@ sub readPSF {
 	$resnum=$3;
         $resname=$4;
 	$atomname=$5;
+	$atomtype=$6;
 	$charge=$7;
 	$mass=$8;
         $iresnum=$resnum+0;
@@ -887,6 +908,7 @@ sub readPSF {
 	
 	$pdbrec->{atominx}=$atominx;
 	$pdbrec->{atomname}=$atomname;
+	$pdbrec->{atomtype}=$atomtype;
 	$pdbrec->{resname}=$resname;
 	$pdbrec->{resnum}=$resnum+0;
 	
@@ -1371,6 +1393,7 @@ sub readAmberPre6 {
   $self->{chain}=();
   $self->{chainlookup}={};
   $self->{defchain}=undef;
+  $self->{selchain}=undef;
   
   my $chainrec=$self->_newChain("");
 
@@ -1449,6 +1472,7 @@ sub readAmber6 {
   $self->{chain}=();
   $self->{chainlookup}={};
   $self->{defchain}=undef;
+  $self->{selchain}=undef;
   
   my $chainrec=$self->_newChain("");
 
@@ -1550,6 +1574,7 @@ sub readAmber {
   $self->{chain}=();
   $self->{chainlookup}={};
   $self->{defchain}=undef;
+  $self->{selchain}=undef;
   
   my $chainrec=$self->_newChain("");
 
@@ -1884,8 +1909,11 @@ sub activeChains {
   my $chainid=shift;
 
   my $list=();
-  
-  if (defined $chainid) {
+
+  if (defined $self->{selchain}) {
+    push(@{$list},$self->{selchain});
+    return $list;
+  } elsif (defined $chainid) {
     push(@{$list},$self->getChain($chainid));
     return $list;
   } elsif (defined $self->{defchain}) {
@@ -2886,6 +2914,78 @@ sub centerOfMass {
 
   return ($cx,$cy,$cz);
 }  
+
+## method: wrap(by,boxx,boxy,boxz)
+## wraps the current structure with respect to the origin
+## by: atom, chain (based on center of mass for each system), system (entire system)
+
+sub wrap {
+  my $self=shift;
+  my $by=shift;
+  my $boxx=shift;
+  my $boxy=shift;
+  my $boxz=shift;
+
+  $boxx=10 if (!defined $boxx || $boxx<=0.001);
+  $boxy=10 if (!defined $boxy || $boxy<=0.001);
+  $boxz=10 if (!defined $boxz || $boxz<=0.001);
+  
+  if ($by eq "system") {
+    my ($cx,$cy,$cz)=$self->centerOfMass();
+    my $dx=$cx;
+    my $dy=$cy;
+    my $dz=$cz;
+    $dx-=$boxx*&GenUtil::nint($dx/$boxx); 
+    $dy-=$boxy*&GenUtil::nint($dy/$boxy); 
+    $dz-=$boxz*&GenUtil::nint($dz/$boxz); 
+    $self->move($dx-$cx,$dy-$cy,$dz-$cz); 
+  } elsif ($by eq "chain") {
+    foreach my $c ( @{$self->{chain}} ) {
+      my ($cx,$cy,$cz)=(0.0,0.0,0.0);
+      my $atom=$c->{atom};
+      my $n+=$#{$atom}+1;
+    
+      for (my $i=0; $i<=$#{$atom}; $i++) {
+        $cx+=$atom->[$i]->{xcoor};
+        $cy+=$atom->[$i]->{ycoor};
+        $cz+=$atom->[$i]->{zcoor};
+      }
+      $cx/=$n;
+      $cy/=$n;
+      $cz/=$n;
+
+      my $dx=$cx;
+      my $dy=$cy;
+      my $dz=$cz;
+      $dx-=$boxx*&GenUtil::nint($dx/$boxx); 
+      $dy-=$boxy*&GenUtil::nint($dy/$boxy); 
+      $dz-=$boxz*&GenUtil::nint($dz/$boxz); 
+      for (my $i=0; $i<=$#{$atom}; $i++) {
+        $atom->[$i]->{xcoor}+=$dx-$cx;
+        $atom->[$i]->{ycoor}+=$dy-$cy;
+        $atom->[$i]->{zcoor}+=$dz-$cz;
+      }
+    } 
+  } elsif ($by eq "atom") {
+    foreach my $c ( @{$self->{chain}} ) {
+      my $atom=$c->{atom};
+      for (my $i=0; $i<=$#{$atom}; $i++) {
+        my $cx=$atom->[$i]->{xcoor};
+        my $cy=$atom->[$i]->{ycoor};
+        my $cz=$atom->[$i]->{zcoor};
+        my $dx=$cx;
+        my $dy=$cy;
+        my $dz=$cz;
+        $dx-=$boxx*&GenUtil::nint($dx/$boxx); 
+        $dy-=$boxy*&GenUtil::nint($dy/$boxy); 
+        $dz-=$boxz*&GenUtil::nint($dz/$boxz); 
+        $atom->[$i]->{xcoor}+=$dx-$cx;
+        $atom->[$i]->{ycoor}+=$dy-$cy;
+        $atom->[$i]->{zcoor}+=$dz-$cz;
+      }
+    }
+  }   
+}
 
 ## method: center()
 ## centers the current structure by subtracting the center 
@@ -3995,6 +4095,8 @@ sub solvate {
   my $solvcut=shift;
   my $tip4p=shift;
   my $center=shift;
+  my $splitseg=shift;
+
   #print STDERR "cutoff= $cutoff shape= $shape tip4p= $tip4p center= $center\n";
   $cutoff=9.0 if (!defined $cutoff);
   my $option=" -cutoff $cutoff ";
@@ -4003,15 +4105,14 @@ sub solvate {
   $option.="-$shape " if (defined $shape);
   #$option.="-tip4p " if (defined $tip4p && $tip4p);
   $option.="-solvcut $solvcut " if (defined $solvcut);
-  $option.="-tip4p" if (defined $tip4p);
+  $option.="-tip4p " if (defined $tip4p && $tip4p);
   $option.="-center " if (defined $center && $center);
   $option.="-nocenter " if (defined $center && !$center);
-  #$option.="-tip4p " if (defined $tip4p);
   my $solvatebin=&GenUtil::findExecutable("solvate");
   die "cannot find solvate executable"
     if (!defined $solvatebin);
 
-#  printf STDERR "running $solvatebin option -\n";
+#  printf STDERR "running $solvatebin $option -\n";
 
   local (*READ,*WRITE,*ERR);
   my $pid=open3(*WRITE,*READ,*ERR,"$solvatebin $option -");
@@ -4022,7 +4123,7 @@ sub solvate {
   $self->writePDB(\*WRITE,ssbond=>0);
   close WRITE;
 
-  $self->readPDB(\*READ); close READ;
+  $self->readPDB(\*READ,splitseg=>$splitseg); close READ;
   
   my $err="";
   while (<ERR>) {
@@ -4853,6 +4954,98 @@ sub findSSBonds {
   return ($#{$self->{ssbond}}+1);
 }
 
+## function: $mol = genHTRNA()
+## generate Hori & Takada CG model for RNA
+## Hori, N. & Takada, S. (2012), JCTC 8, 3384-3394
+##
+
+sub genHTRNA {
+  my $self=shift;
+
+  my $n={};
+  $n->{chain}=();
+  $n->{chainlookup}={};
+  $n->{defchain}=undef;
+  $n->{segmentlist}=undef;
+  $n->{ssbond}=();
+
+  bless $n;
+
+  foreach my $s ( @{$self->{ssbond}} ) {
+    my $srec={};
+    %{$srec}=%{$s};
+    push (@{$n->{ssbond}},$srec);
+  }
+
+  foreach my $c ( @{$self->activeChains()} ) {
+    my $nc=undef;
+
+    my $natom=1;
+    foreach my $r (@{$c->{res}}) {
+      $nc=$n->_newChain($c->{id}) if (!defined $nc);
+
+      my $rrec={};
+      %{$rrec}=%{$r};
+      $rrec->{start}=$#{$nc->{atom}}+1;
+      push(@{$nc->{res}},$rrec);
+      my %alook;
+      for (my $ia=$r->{start}; $ia<=$r->{end}; $ia++) {
+	my $a=$c->{atom}->[$ia];
+	$alook{$a->{atomname}}=$a;
+      }
+
+      if (($r->{name} eq "ADE" || $r->{name} eq "GUA" || $r->{name} eq "CYT" || $r->{name} eq "THY" || $r->{name} eq "URA") && 
+	  exists $alook{'P'}) {
+	my $x=$alook{'P'}->{xcoor};
+	my $y=$alook{'P'}->{ycoor};
+	my $z=$alook{'P'}->{zcoor};
+	my $arec={ atominx => $natom++, atomname => "P", seg => $r->{seg},
+		   resname => $r->{name}, resnum  => $r->{num}, chain=> $r->{chain},
+		   xcoor   => $x, ycoor => $y, zcoor => $z, valid=>1 };
+	push(@{$nc->{atom}},$arec);
+      }
+
+      if (($r->{name} eq "ADE" || $r->{name} eq "GUA" || $r->{name} eq "CYT" || $r->{name} eq "THY" || $r->{name} eq "URA") && 
+	  exists $alook{"C1'"} && exists $alook{"C2'"} && exists $alook{"C3'"} && exists $alook{"C4'"} && exists $alook{"O4'"}) {
+	my $x=($alook{"C1'"}->{xcoor}+$alook{"C2'"}->{xcoor}+$alook{"C3'"}->{xcoor}+$alook{"C4'"}->{xcoor}+$alook{"O4'"}->{xcoor})/5.0;
+	my $y=($alook{"C1'"}->{ycoor}+$alook{"C2'"}->{ycoor}+$alook{"C3'"}->{ycoor}+$alook{"C4'"}->{ycoor}+$alook{"O4'"}->{ycoor})/5.0;
+	my $z=($alook{"C1'"}->{zcoor}+$alook{"C2'"}->{zcoor}+$alook{"C3'"}->{zcoor}+$alook{"C4'"}->{zcoor}+$alook{"O4'"}->{zcoor})/5.0;
+	my $arec={ atominx => $natom++, atomname => "S", seg => $r->{seg},
+		   resname => $r->{name}, resnum  => $r->{num}, chain=> $r->{chain},
+		   xcoor   => $x, ycoor => $y, zcoor => $z, valid=>1 };
+	push(@{$nc->{atom}},$arec);
+      }
+
+      if (($r->{name} eq "CYT" || $r->{name} eq "THY" || $r->{name} eq "URA") && exists $alook{"N3"}) {
+	my $x=$alook{"N3"}->{xcoor};
+	my $y=$alook{"N3"}->{ycoor};
+	my $z=$alook{"N3"}->{zcoor};
+	my $arec={ atominx => $natom++, atomname => "B", seg => $r->{seg},
+		   resname => $r->{name}, resnum  => $r->{num}, chain=> $r->{chain},
+		   xcoor   => $x, ycoor => $y, zcoor => $z, valid=>1 };
+	push(@{$nc->{atom}},$arec);
+      }
+
+      if (($r->{name} eq "ADE" || $r->{name} eq "GUA" ) && exists $alook{"N1"}) {
+	my $x=$alook{"N1"}->{xcoor};
+	my $y=$alook{"N1"}->{ycoor};
+	my $z=$alook{"N1"}->{zcoor};
+	my $arec={ atominx => $natom++, atomname => "B", seg => $r->{seg},
+		   resname => $r->{name}, resnum  => $r->{num}, chain=> $r->{chain},
+		   xcoor   => $x, ycoor => $y, zcoor => $z, valid=>1 };
+	push(@{$nc->{atom}},$arec);
+      }
+
+      $rrec->{end}=$#{$nc->{atom}};
+    }
+  }
+
+  $n->_coorCache();
+
+  return $n;
+}
+
+
 ## function: $mol = genPRIMO()
 ## generate reduced PRIMO (protein intermediate model) representation
 ## from all-atom structure (handles both proteins and nucleic acids)
@@ -4875,7 +5068,6 @@ sub genPRIMO {
     %{$srec}=%{$s};
     push (@{$n->{ssbond}},$srec);
   }
-
 
   foreach my $c ( @{$self->activeChains()} ) {
     my $nc=undef;
@@ -6650,9 +6842,9 @@ sub parseSelection {
 	} elsif ($res eq "metal") {
 	  push(@tres,qw(ZN FE NI MN CU CO CA BE));
 	} elsif ($res eq "ion") {
-	  push(@tres,qw(MG NA CL K SOD CLA CLM NAP));
+	  push(@tres,qw(MG NA CL K SOD CLA CLM NAP POT));
         } elsif ($res eq "solvent") {
-	  push(@tres,qw(MG NA CL K SOD CLA CLM NAP));
+	  push(@tres,qw(MG NA CL K SOD CLA CLM NAP POT));
 	  push(@tres,qw(TIP3 TIP HOH SPC SPCE TIP4 TIP5));
 	} elsif ($res =~/^[\-0-9=]+$/) {
           my $tt={};
