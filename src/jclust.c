@@ -1012,7 +1012,7 @@ void shiftup(double *d, int *p, int *w, int s) {
 
 // *** main ********************************
 
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   int maxnofcluster=-1;
 
   InputModeEnum inpMode=PDBMODE;

@@ -688,7 +688,7 @@ void Cluster::copyCentroid() {
 
 // *** main ********************************
 
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   InputModeEnum inpMode=PDBMODE;
   SelEnum selMode=ALL;
   

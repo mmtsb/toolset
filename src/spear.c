@@ -237,7 +237,7 @@ void spear(double *data1, double *data2,
 }
 
 #define MAXN 100000
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   double *dx=new double[MAXN];
   double *dy=new double[MAXN];
   

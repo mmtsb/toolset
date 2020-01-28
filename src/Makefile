@@ -2,6 +2,11 @@ SHELL = /bin/sh
 
 CC  = gcc -Wno-unused-result -Wno-write-strings
 CXX = g++ -Wno-unused-result -Wno-write-strings
+
+# try the following on MacOS:
+#CC  = gcc-mp-8 -Wno-unused-result -Wno-write-strings
+#CXX = g++-mp-8 -Wno-unused-result -Wno-write-strings
+
 FC  = gfortran
 F90 = gfortran
 

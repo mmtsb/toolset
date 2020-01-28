@@ -210,7 +210,7 @@ int Chain::colinear(int inx, int jnx, int knx) {
   return ((kx*kx+ky*ky+kz*kz)==0)?1:0;
 }
 
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   char datdir[256];
   fgets(datdir,256,stdin);
 
