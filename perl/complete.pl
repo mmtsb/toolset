@@ -31,7 +31,7 @@ use CHARMM;
 my %par = (
   hsd => "",
   hse => "",
-  param => 27,
+  param => 36,
   blocked => 0
 );
 
