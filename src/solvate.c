@@ -22,6 +22,7 @@ void usage() {
  fprintf(stderr,"options: [-box PDBfile] [-boxwidth value]\n");
  fprintf(stderr,"         [-cutoff value]\n");
  fprintf(stderr,"         [-res min max] [-cubic] [-octahedron]\n");
+ fprintf(stderr,"         [-solvcut value]\n");
  fprintf(stderr,"         [-[no]center]\n");
  exit(1);
 }
@@ -71,7 +72,7 @@ int main(int argc, char **argv) {
   int octamode=0;
   int center=1;
 
-  double solvcut=2.0;
+  double solvcut=2.10;
 
   strcpy(boxfile,"water.pdb");
 
@@ -112,20 +113,29 @@ int main(int argc, char **argv) {
   double extsolvcut=solvcut+1.5;
   double extsolvcutsq=extsolvcut*extsolvcut;
 
+  double watcutsq=1.7*1.7;
+
   double cutsq=cutoff*cutoff;
   
   PDBEntry *solute,*solvent;
-  int maxsolute=1000000;
-  int maxsolvent=1000000;
+  int maxsolute=10000000;
+  int maxsolvent=10000000;
+  int maxsolvbox=10000000;
 
   solute=new PDBEntry[maxsolute];
   solvent=new PDBEntry[maxsolvent];
 
-  int nsolute,nsolvent;
+  int *solvinx=new int[maxsolvbox]; 
+  Vector *solvadd=new Vector[maxsolvbox];
+  int *solvedge=new int[maxsolvbox];
+
+  int nsolute,nsolvent,nsolvbox;
   int nsoluteres,nsolventres;
 
-  int soluteStart[100000];
-  int solventStart[100000];
+  nsolvbox=0;
+
+  int soluteStart[5000000];
+  int solventStart[5000000];
 
   readPDB(boxfile,solvent,nsolvent,solventStart,nsolventres);
   readPDB(pdbfile,solute,nsolute,soluteStart,nsoluteres);
@@ -211,6 +221,8 @@ int main(int argc, char **argv) {
     fprintf(stderr,"box size: %lf x %lf x %lf\n",dim.x(),dim.y(),dim.z());
   } 
 
+  Vector boxdim=dim;
+
   dim/=2.0;
 
   for (ix=-xmult; ix<=xmult; ix++) {
@@ -226,6 +238,14 @@ int main(int argc, char **argv) {
 	      c.y()>-dim.y() && c.y()<dim.y() &&
 	      c.z()>-dim.z() && c.z()<dim.z()) {
 	    good=1;
+
+            int edge=0;
+            if (c.x()<-dim.x()+2.0 || c.x()>dim.x()-2.0 || 
+                c.y()<-dim.y()+2.0 || c.y()>dim.y()-2.0 ||
+                c.z()<-dim.z()+2.0 || c.z()>dim.z()-2.0) {
+              edge=1;
+            } 
+
 
 	    if (resmin>=0 && resmax>=resmin) {
 	      goodcut=0;
@@ -283,13 +303,40 @@ int main(int argc, char **argv) {
             double tz=solvent[iwa].coordinates().z()+a.z();
 	    double rcf=(fabs(tx)+fabs(ty)+fabs(tz));
 	    if (good && goodcut>0 && (!octamode || rcf<1.5*dim.x())) {
-	      resinx++;
-	      for (iwa=solventStart[in]; iwa<solventStart[in+1]; iwa++) {
+              if (edge) {
+//                printf("checking %d\n",nsolvbox);
+                for (int ihave=0; ihave<nsolvbox && good; ihave++) {
+                  if (solvedge[ihave]) {
+                    for (int iwah=solventStart[solvinx[ihave]]; iwah<solventStart[solvinx[ihave]+1] && good; iwah++) {
+                      for (int iwan=solventStart[in]; iwan<solventStart[in+1] && good; iwan++) {
+                        Vector dww=(solvent[iwan].coordinates()+a)-(solvent[iwah].coordinates()+solvadd[ihave]);
+                        dww.pbc(boxdim);
+                        double dwwval=dww*dww;
+                        if (dwwval<watcutsq) {
+                          good=0;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+
+              if (good) { 
+                solvinx[nsolvbox]=in;
+                solvedge[nsolvbox]=edge;
+                solvadd[nsolvbox++]=a;
+//               printf("%d %d %lf %lf %lf\n",in,edge,
+//                       solvent[solventStart[in]].coordinates().x()+a.x(),
+//                       solvent[solventStart[in]].coordinates().y()+a.y(),
+//                       solvent[solventStart[in]].coordinates().z()+a.z());
+              }
+//	      resinx++;
+//	      for (iwa=solventStart[in]; iwa<solventStart[in+1]; iwa++) {
 		//		fprintf(stderr,"adding %d %s %d\n",atominx,solvent[iwa].atomName(),resinx);
-		PDBEntry t(atominx++,solvent[iwa].atomName(),solvent[iwa].residueName(),
-			   resinx,solvent[iwa].coordinates()+a);
-		t.write(stdout);
-	      }
+//		PDBEntry t(atominx++,solvent[iwa].atomName(),solvent[iwa].residueName(),
+//			   resinx,solvent[iwa].coordinates()+a);
+//		t.write(stdout);
+//	      }
 	    }
 	  }
 	}
@@ -297,8 +344,21 @@ int main(int argc, char **argv) {
     }
   }
 
+  for (int isb=0; isb<nsolvbox; isb++) {
+      resinx++;
+      int in=solvinx[isb];
+      Vector a=solvadd[isb];
+      for (iwa=solventStart[in]; iwa<solventStart[in+1]; iwa++) {
+         PDBEntry t(atominx++,solvent[iwa].atomName(),solvent[iwa].residueName(),
+                    resinx,solvent[iwa].coordinates()+a);
+         t.write(stdout);
+      }
+  } 
+
   printf("END\n");
 
+  delete solvinx;
+  delete solvadd;
   delete solute;
   delete solvent;
 }
