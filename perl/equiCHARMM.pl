@@ -41,7 +41,7 @@ my %par = (
  dynoutfrq  =>  50,
  sdsteps    =>  50,
  minsteps   =>  500,
- param      =>  27,
+ param      =>  36,
  cmap       =>  1
 ); 
 
