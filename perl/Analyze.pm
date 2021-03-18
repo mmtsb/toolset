@@ -2067,11 +2067,11 @@ sub phipsi {
     my %cainx;
     my %ninx;
     foreach my $a ( @{$c->{atom}} ) {
-      my $key="$a->{chain}$a->{resnum}";
+      my $key="$a->{chain}$a->{seg}$a->{resnum}";
       my $rm=$a->{resnum}-1;
-      my $keym="$a->{chain}$rm";
+      my $keym="$a->{chain}$a->{seg}$rm";
       my $rp=$a->{resnum}+1;
-      my $keyp="$a->{chain}$rp";
+      my $keyp="$a->{chain}$a->{seg}$rp";
 
       $cinx{$key}=$a  if ($a->{atomname} eq "C");
       $cainx{$key}=$a if ($a->{atomname} eq "CA");
@@ -2085,9 +2085,9 @@ sub phipsi {
 
     foreach my $r ( @{$c->{res}} ) {
       if ($r->{valid}) {
-	my $key="$r->{chain}$r->{num}";
-	my $keyp=sprintf("%s%d",$r->{chain},$r->{num}+1);
-	my $keym=sprintf("%s%d",$r->{chain},$r->{num}-1);
+	my $key="$r->{chain}$r->{seg}$r->{num}";
+	my $keyp=sprintf("%s%s%d",$r->{chain},$r->{seg},$r->{num}+1);
+	my $keym=sprintf("%s%s%d",$r->{chain},$r->{seg},$r->{num}-1);
 
 	if (defined $ninx{$key} && defined $cainx{$key} && 
 	    defined $cinx{$key}) {

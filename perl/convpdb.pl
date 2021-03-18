@@ -23,7 +23,7 @@ sub usage {
   printf STDERR "         [-renumwatersegs]\n";
   printf STDERR "         [-match pdbfile]\n";
   printf STDERR "         [-setchain id] [-setseg id] [-setall]\n";
-  printf STDERR "         [-readseg] [-chainfromseg] [-splitseg]\n";
+  printf STDERR "         [-readseg] [-chainfromseg] [-splitseg] [-alternate]\n";
   printf STDERR "         [-charmm19] [-amber]\n";
   printf STDERR "         [-out charmm19 | charmm22 | amber | generic]\n";
   printf STDERR "         [-genres]\n";
@@ -42,6 +42,7 @@ sub usage {
   printf STDERR "         [-setaux1 value] [-setaux2 value]\n";
   printf STDERR "         [-removeclashes] [-clashes] [-clashcut value]\n";
   printf STDERR "         [-wrap boxx boxy boxz] [-by chain|atom|system]\n";
+  printf STDERR "         [-reimage cx cy cz]\n";
   exit 1;
 }
 
@@ -135,14 +136,19 @@ my $renumwatersegs=0;
 my $crd=0;
 my $crdext=0;
 my $crdinp=0;
+my $cifinp=0;
 my $splitseg=undef;
+my $alternate=undef;
 my $clashcut=undef;
 my $setaux1=undef;
 my $setaux2=undef;
-my $wrapby="system";
+my $wrapby=undef;
 my $boxx=undef;
 my $boxy=undef;
 my $boxz=undef;
+my $scx=undef;
+my $scy=undef;
+my $scz=undef;
 
 while ($#ARGV>=0) {
   if ($ARGV[0] eq "-help" || $ARGV[0] eq "-h") {
@@ -168,6 +174,9 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-splitseg") {
     shift @ARGV;
     $splitseg=1;
+  } elsif ($ARGV[0] eq "-alternate") {
+    shift @ARGV;
+    $alternate=1;
   } elsif ($ARGV[0] eq "-genres") {
     shift @ARGV;
     $genresno=1;
@@ -183,6 +192,12 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-by") {
     shift @ARGV;
     $wrapby=shift @ARGV;
+  } elsif ($ARGV[0] eq "-reimage") {
+    shift @ARGV;
+    $scx=0.0+shift @ARGV; 
+    $scy=0.0+shift @ARGV; 
+    $scz=0.0+shift @ARGV; 
+    $wrapby="reimage";
   } elsif ($ARGV[0] eq "-nmode") {
     shift @ARGV;
     $nmodefile=shift @ARGV;
@@ -476,6 +491,9 @@ while ($#ARGV>=0) {
     $crd=1;
     $crdext=1;
     $ignoreseg=0;
+  } elsif ($ARGV[0] eq "-cifinp") {
+    shift @ARGV;
+    $cifinp=1;
   } else {
     $fname = shift @ARGV;
   }
@@ -551,8 +569,10 @@ if ($mol2) {
   $mol->readMol2($fname);
 } elsif ($crdinp) {
   $mol->readCRD($fname);
+} elsif ($cifinp) {
+  $mol->readCIF($fname);
 } else {
-  $mol->readPDB($fname,translate=>$inmode,ignoreseg=>$ignoreseg,splitseg=>$splitseg,
+  $mol->readPDB($fname,translate=>$inmode,ignoreseg=>$ignoreseg,splitseg=>$splitseg,alternate=>$alternate,
 		chainfromseg=>$chainfromseg,model=>$selmodel,firstmodel=>$firstmodel);
 }
 
@@ -622,7 +642,13 @@ if (defined $nmodefile && -r $nmodefile) {
   $mol->displace($nmodearr,$nmodeamplitude,$nmodeweight);
 }
 $mol->scale($scale) if (defined $scale);
-$mol->wrap($wrapby,$boxx,$boxy,$boxz) if (defined $wrapby && defined $boxx && defined $boxy && defined $boxz);
+if (defined $wrapby) {
+  $boxx=$mol->{cryst}->{a} if (!defined $boxx && exists $mol->{cryst});
+  $boxy=$mol->{cryst}->{b} if (!defined $boxy && exists $mol->{cryst});
+  $boxz=$mol->{cryst}->{c} if (!defined $boxz && exists $mol->{cryst});
+
+  $mol->wrap($wrapby,$boxx,$boxy,$boxz,$scx,$scy,$scz) if (defined $boxx && defined $boxy && defined $boxz);
+}
 $mol->renumber($renumber) if (defined $renumber);
 $mol->shiftResNumber($addres)  if (defined $addres);
 $mol->generateSegNames() if (defined $segnames);

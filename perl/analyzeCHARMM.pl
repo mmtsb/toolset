@@ -297,6 +297,7 @@ while ($#ARGV>=0) {
     $setupenergy=1;
   } elsif ($ARGV[0] =~ /^-([a-zA-Z0-9]+)$/) {
     shift @ARGV;
+    if ($1 eq "center") { $fit=0; }
     push(@analyze,$1);
   } else {
     die "Unknown option $ARGV[0]" if ($ARGV[0]=~/^-/);

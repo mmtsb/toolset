@@ -10,7 +10,7 @@ sub usage {
   printf STDERR "usage:   complete.pl [options] [PDBfile]\n";
   printf STDERR "options: [-hsd list] [-hse list] [-param 19|22|27] [-blocked]\n";
   printf STDERR "         [-log file] [-cmd file]\n";
-  printf STDERR "         [-nosicho]\n";
+  printf STDERR "         [-nosicho] [-nofixca]\n";
   exit 1;
 }
 
@@ -42,6 +42,7 @@ my $cmdfile;
 
 my $fraglist;
 my $sicho=1;
+my $fixca=1;
 
 while ($#ARGV>=0) {
   if ($ARGV[0] eq "-help" || $ARGV[0] eq "-h") {
@@ -64,6 +65,9 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-nosicho") {
     shift @ARGV;
     $sicho=0;
+  } elsif ($ARGV[0] eq "-nofixca") {
+    shift @ARGV;
+    $fixca=0;
   } elsif ($ARGV[0] eq "-blocked") {
     shift @ARGV;
     $par{blocked}=1;
@@ -90,7 +94,7 @@ my $tmol=$mol->clone(1);
 my $ss=$tmol->getSSBonds();
 
 my $nmol=$tmol->completeWater();
-$nmol->completeResidue($sicho);
+$nmol->completeResidue($sicho,$fixca);
 $nmol->fixCOO() if (!$par{blocked});
 $nmol->translate("CHARMM22");
 $nmol->fixHistidine($par{hsd},$par{hse});

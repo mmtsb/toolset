@@ -102,6 +102,7 @@ sub new {
     die "open2 for $exec failed";
 
   printf $o2write "* title\n*\n\n";
+  printf $o2write "dimension chsize %d\n",500000;
   printf $o2write "UNBUFIO\n";
 
   $self->{handle}->{fromcharmm}=$o2read;
@@ -141,8 +142,10 @@ sub new {
 
    patch     => "",             # list of patches
    autogen   => 1,              # auto generate angles/dihedrals after patches
+   solvseg   => undef,          # segments to be loaded with water after everything else
 
    buildall  => 1,              # rebuild all missing atoms
+   hbuild    => 0,              # force hbuild 
 
    faster    => "on",           # fast energy routines (on|off)
 
@@ -1155,7 +1158,7 @@ sub setupFromPDB {
   $findChainBreaks=0 if (! defined $findChainBreaks);
 
   my $mol=Molecule::new();
-  $mol->readPDB($pdb);
+  $mol->readPDB($pdb,splitseg=>1);
   $mol->findSSBonds() if ((defined $findSS) && ($findSS));
   $mol->fixHistidine($self->{par}->{hsd},$self->{par}->{hse},$self->{par}->{hsp});
   $mol->changeResName($self->{par}->{resmod});
@@ -1334,14 +1337,21 @@ sub setupFromMolecule {
     $segmol->writePDB($fname,translate=>getConvType($self->{par}->{param}),ssbond=>0);
 
     if (!$readonly) {
-      if ($f->{name} eq "TIP3" || $f->{name} eq "TIP4" || $f->{name} eq "HOH" || $f->{name}=~/^W/) {
+      if ($f->{name} eq "TIP3" || $f->{name} eq "TIP4" || $f->{name} eq "HOH" || $f->{name}=~/^W/ || 
+          $segmol->{chain}->[0]->{res}->[0]->{name} eq "TIP3" || 
+          $segmol->{chain}->[0]->{res}->[0]->{name} eq "HOH") {
 	my $trec={};
 	$trec->{fname}=$fname;
 	$trec->{gen}="generate $f->{name} setup noangl nodihe";
 	push(@watgen,$trec);
 	$self->{explicitWater}=1;
 	$self->{par}->{periodic}=1 unless (defined $self->{par}->{periodic});
-      } else {
+      } elsif (defined $self->{par}->{solvseg} && $self->{par}->{solvseg} ne "" && (":".$self->{par}->{solvseg}.":")=~/:$f->{name}:/) {
+	my $trec={};
+	$trec->{fname}=$fname;
+	$trec->{gen}="generate $f->{name} setup noangl nodihe";
+	push(@watgen,$trec);
+      } else { 
 	$self->_sendCommand("open unit 10 read form name \"$fname\"");
 	$self->_sendCommand("read sequ pdb unit 10");
         if ($hetero) {
@@ -1495,7 +1505,9 @@ sub setupFromMolecule {
     if (($self->{par}->{param} eq "19" || $self->{par}->{param} =~ /22/ ||
          $self->{par}->{param} eq "27" || $self->{par}->{param} eq "36" ||
          $self->{par}->{param} eq "eef1.36"  ||
-	 $self->{par}->{param} eq "eef1"  || $self->{par}->{param} eq "eef1.1" || $self->{par}->{param} eq "lpdb")) {
+	 $self->{par}->{param} eq "eef1"  || $self->{par}->{param} eq "eef1.1" || 
+         $self->{par}->{param} eq "lpdb" || 
+         $self->{par}->{hbuild})) {
       my $nic=$self->reportVariable("NIC");
       if ($nic>0) {
 	$self->_sendCommand("coor copy comp");

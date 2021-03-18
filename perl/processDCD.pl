@@ -20,7 +20,6 @@ sub usage {
   printf STDERR "          [-fitl min:max[...]]\n";
   printf STDERR "          [-ref ref]\n";
   printf STDERR "          [-psf file]\n";
-  printf STDERR "          [-atoms from:to]\n";
   printf STDERR "          [-tag value]\n";
   exit 1;
 }
@@ -63,7 +62,6 @@ my $boxc;
 my $starttag;
 
 my $frames;
-my $atoms;
 
 my $warn=1;
 my $resnumonly=undef;

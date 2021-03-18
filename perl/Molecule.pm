@@ -116,10 +116,10 @@ sub readPDB {
 
   my $firstmodelonly=(defined $par{firstmodel} && $par{firstmodel})?1:0;
   my $splitseg=(defined $par{splitseg} && $par{splitseg})?1:0;
+  my $readalternate=(defined $par{alternate} && $par{alternate})?1:0;
   my $readmodels=0;
 
   my $lastchain=".";
-  my $lastseg=".";
   my $chainrec;
 
   $self->{chain}=();
@@ -144,7 +144,18 @@ sub readPDB {
   my %sshave; 
  READPDB:
   while(<$fname>) {
-    if (/^SSBOND/) {
+    if (/^CRYST1/) {
+      chomp;
+      my @f=split(/\s+/);
+      my $trec={};
+      $trec->{a}=$f[1];
+      $trec->{b}=$f[2];
+      $trec->{c}=$f[3];
+      $trec->{aa}=$f[4];
+      $trec->{ab}=$f[5];
+      $trec->{ac}=$f[6];
+      $self->{cryst}=$trec;
+    } elsif (/^SSBOND/) {
       my $trec={};
       ($trec->{chain1}=substr($_,15,1))=~s/ //g;
       ($trec->{resnum1}=substr($_,16,5))=~s/[A-Z\s]+//g;
@@ -207,6 +218,7 @@ sub readPDB {
 	$atomname.=$alt if ($alt=~/[0-9]/);
 	($resname=substr($_,17,4))=~s/ //g;
 	$resnum=substr($_,22,6);
+        $resnum=~s/\s//g;
 	($iresnum=$resnum)=~s/[A-Z]+//g;
 	$iresnum+=0;
 	$chain=substr($_,21,1);
@@ -221,7 +233,7 @@ sub readPDB {
 	}
 
 	if ($resnum ne $lastnum) {
-	  $ignore=($iresnum == $lastinum);
+	  $ignore=($iresnum == $lastinum && !$readalternate);
 	}
 
 	if (!$ignore) {
@@ -482,7 +494,6 @@ sub readPDB {
 	  }
 
           $iresnum+=$addrnum;
-          
 	  
 	  my $pdbrec={};
 	 
@@ -497,6 +508,7 @@ sub readPDB {
 	  $pdbrec->{atomname}=$atomname;
 	  $pdbrec->{resname}=$resname;
 	  $pdbrec->{resnum}=$iresnum;
+          $pdbrec->{aresnum}=$resnum if ($readalternate);
 
 	  $pdbrec->{chain}=$chainrec->{id};
 	  $pdbrec->{xcoor}=substr($_,30,8)+0.0;
@@ -519,6 +531,7 @@ sub readPDB {
 	    my $resrec={};
 	    $resrec->{name}=$resname;
 	    $resrec->{num}=$iresnum;
+            $resrec->{anum}=$resnum if ($readalternate);
 	    $resrec->{chain}=$chainrec->{id};
 	    $resrec->{start}=$#{$chainrec->{atom}};
 	    $resrec->{end}=$resrec->{start};
@@ -536,7 +549,6 @@ sub readPDB {
 	$lastnum=$resnum;
 	$lastinum=$iresnum;
 	$lastchain=$chain;
-        $lastseg=$seg;
       }
     } elsif (/^HETAT/ && (!defined $activemodel || $activemodel)) {
       my ($atomname, $resname, $resnum, $iresnum, $alt, $chain, $seg);
@@ -637,6 +649,174 @@ sub readPDB {
 
   undef $fname;
 }
+
+## method: readCIF(file)
+## reads a protein structures from an mmCIF file.
+
+sub readCIF {
+  my $self=shift;
+  my $fname=&GenUtil::getInputFile(shift);
+
+  my $datatag;
+  my %data;
+  my $looptag=undef;
+  my $loop=0;
+  my @keys=();
+  while (<$fname>) {
+    chomp;
+    s/^\s+//;
+    s/\s+$//;
+    if (/^data_(.+)$/) {
+      $datatag=$1;
+    } elsif (/^#/) {
+      $looptag=undef;
+      $loop=0;
+    } elsif (/loop_/) {
+      $loop=1;
+      @keys=();
+    } elsif (!$loop && /^_(\S+)\.(\S+)\s+(\S+)/) {
+      if (!exists $data{$1}) {
+        $data{$1}=();
+      }
+      my $trec={};
+      $trec->{$2}=$3;
+      push(@{$data{$1}},$trec);
+    } elsif (!$loop && /^_(\S+)\s+(\S+)/) {
+      if (!exists $data{$1}) {
+        $data{$1}=();
+      }
+      my $trec={};
+      $trec->{value}=$2;
+      push(@{$data{$1}},$trec);
+    } elsif ($loop && /^_(\S+)\.(\S+)/) {
+      if (!exists $data{$1}) {
+        $looptag=$1;
+        $data{$looptag}=();
+      }
+      push(@keys,$2);
+    } elsif ($loop) {
+      my @f=split(/\s+/);
+      my $trec={};
+      for (my $if=0; $if<=$#f; $if++) {
+        $trec->{$keys[$if]}=$f[$if];
+      }
+      push(@{$data{$looptag}},$trec);
+    }
+  }
+
+  $self->{chain}=();
+  $self->{chainlookup}={};
+  $self->{defchain}=undef;
+  $self->{selchain}=undef;
+
+  my $lastchain=".";
+  my $lastseg=".";
+  my $chainrec;
+
+  my $lastnum=-999;
+  my $ignore;
+
+  my $newchain=0;
+
+  if (!exists $data{"atom_site"}) {
+    printf STDERR "cannot find atom information in mmCIF file\n";
+    exit 1;
+  }
+
+  my $extchain=0;
+  foreach my $t ( @{$data{"atom_site"}} ) {
+    my $chain=$t->{auth_asym_id};
+    if (length($chain)>1) {
+      $extchain=1;
+    }
+  }
+
+  foreach my $t ( @{$data{"atom_site"}} ) {
+    my $atomname=$t->{label_atom_id};
+    my $resnum=$t->{auth_seq_id};
+    my $resname=$t->{auth_comp_id};
+    my $chain=($extchain)?" ":$t->{auth_asym_id};
+    my $seg=$t->{auth_asym_id};
+    my $ainx=$t->{id};
+    my $xcoor=$t->{Cartn_x};
+    my $ycoor=$t->{Cartn_y};
+    my $zcoor=$t->{Cartn_z};
+    my $occupancy=$t->{occupancy};
+    my $bvalue=$t->{B_iso_or_equiv};
+    my $iresnum=$resnum+0;
+
+    $atomname=~s/\"//g;
+    $resname=~s/\"//g;
+	  
+    $atomname="CD1" 
+      if ($resname eq "ILE" && $atomname eq "CD");
+    $atomname="O"
+      if (($atomname eq "OT1" || $atomname eq "O1" || $atomname eq "OCT1")
+          && $resname =~/^ALA|ARG|ASN|ASP|CYS|GLN|GLU|GLY|HSD|HSE|HSP|HIS|HSP|ILE|LEU|LYS|MET|PHE|PRO|SER|THR|TRP|TYR|VAL|CYX$/);
+    $atomname="OXT"
+      if (($atomname eq "OT2" || $atomname eq "O2" || $atomname eq "OCT2")
+          && $resname =~/^ALA|ARG|ASN|ASP|CYS|GLN|GLU|GLY|HSD|HSE|HSP|HIS|HSP|ILE|LEU|LYS|MET|PHE|PRO|SER|THR|TRP|TYR|VAL|CYX$/);
+	
+    if ($t->{group_PDB} eq "HETATM") {
+      $chain="+";
+    }
+	
+    if ($chain ne $lastchain || $seg ne $lastseg) { 
+      my $crec=$self->{chainlookup}->{$chain};
+      $chainrec=(defined $crec)?$crec:$self->_newChain($chain);
+      $newchain=1;
+    } else {
+      $newchain=0;
+    }
+	
+    my $pdbrec={};
+	
+    $pdbrec->{atominx}=$ainx; 
+    $pdbrec->{atomname}=$atomname;
+    $pdbrec->{resname}=$resname;
+    $pdbrec->{resnum}=$resnum+0;
+	
+    $pdbrec->{chain}=$chainrec->{id};
+    $pdbrec->{xcoor}=$xcoor;
+    $pdbrec->{ycoor}=$ycoor;
+    $pdbrec->{zcoor}=$zcoor;
+    $pdbrec->{hyd}=($atomname=~/^[0-9]*H.*/)?1:0;
+    $pdbrec->{seg}=$seg;
+
+    $pdbrec->{aux1}=$occupancy;
+    $pdbrec->{aux2}=$bvalue;
+
+    $pdbrec->{valid}=1;
+    	  
+    push (@{$chainrec->{atom}}, $pdbrec);
+
+#	printf "%s %s %d %s %s %s %s\n",$chainrec->{id},$resnum,$iresnum,$lastnum,$resname,$seg,$atomname;
+	
+    if ($iresnum != $lastnum || $newchain) {
+      my $resrec={};
+      $resrec->{name}=$resname;
+      $resrec->{num}=$iresnum;
+      $resrec->{chain}=$chainrec->{id};
+      $resrec->{start}=$#{$chainrec->{atom}};
+      $resrec->{end}=$resrec->{start};
+      $resrec->{valid}=1;
+      $resrec->{seg}=$seg;
+      push(@{$chainrec->{res}},$resrec);
+    } else {
+      $chainrec->{res}->[$#{$chainrec->{res}}]->{end}=$#{$chainrec->{atom}};
+    }
+    $lastnum=$iresnum;
+    $lastchain=$chain;
+    $lastseg=$seg;
+  }
+
+  $self->{segmentlist}=undef;
+
+  $self->_coorCache();
+
+  undef $fname;
+}
+
 
 ## method: readCRD(file)
 ## reads a protein structures from a CHARMM CRD file.
@@ -761,6 +941,7 @@ sub readCRD {
 
   undef $fname;
 }
+
 
 ## method: readMol2(file)
 ## reads a molecular structure from a MOL2 file
@@ -1816,9 +1997,10 @@ sub getSegNames {
         for (my $ir=0; $ir<=$#{$c->{res}}; $ir++) {
           my $r=$c->{res}->[$ir];
 #	foreach my $r ( @{$c->{res}} ) { 
-	  if (!defined $lastseg || $r->{seg} ne $lastseg) {
+          my $rseg=(defined $r->{seg})?$r->{seg}:"";
+	  if (!defined $lastseg || $rseg ne $lastseg) {
 	    $rec={};
-	    $rec->{name}=$r->{seg};
+	    $rec->{name}=$rseg;
 	    $rec->{first}=(!defined $lastseg);
 	    $rec->{last}=0;
 	    $rec->{chain}=$c->{id};
@@ -1826,7 +2008,7 @@ sub getSegNames {
 	    $rec->{from}=$r->{num};
 	    $rec->{frominx}=$ir;
 	    push(@{$self->{segmentlist}},$rec);
-	    $lastseg=$r->{seg};
+	    $lastseg=$rseg;
 	  } 
 	  $rec->{to}=$r->{num};
 	  $rec->{toinx}=$ir;
@@ -2711,20 +2893,25 @@ sub renumber {
   my $nres=$start-1;
   my $lastnum=-999;
   my $lastseg="XXX";
+  my $lastares="-999";
 
   my $havemap=(defined $map);
 
   for (my $i=0; $i<=$#{$atom}; $i++) {  
     $atom->[$i]->{atominx}=$i+1;
 
-    if ($atom->[$i]->{resnum} != $lastnum || $atom->[$i]->{seg} ne $lastseg) {
+    if ($atom->[$i]->{resnum} != $lastnum || 
+        (defined $atom->[$i]->{aresnum} && $atom->[$i]->{aresnum} ne $lastares) ||
+        $atom->[$i]->{seg} ne $lastseg) {
       $lastnum=$atom->[$i]->{resnum};
+      $lastares=$atom->[$i]->{aresnum} if (defined $atom->[$i]->{aresnum});
       $lastseg=$atom->[$i]->{seg};
       $nres++;
     }
 
     my $newnum=$havemap ? $map->{$atom->[$i]->{resnum}} : $nres;
     $atom->[$i]->{resnum}=$newnum;
+    $atom->[$i]->{aresnum}=undef if (defined $atom->[$i]->{aresnum});
   }
 
   my @nn;
@@ -2760,6 +2947,7 @@ sub renumber {
 
   for (my $i=0; $i<=$#{$res}; $i++) {
     $res->[$i]->{num}=$nn[$i];
+    $res->[$i]->{anum}=undef if (defined $res->[$i]->{anum});
   }
 
   $c->{resinx}=undef;
@@ -2774,7 +2962,10 @@ sub renumber {
 sub renumberWaterSegments {
   my $self=shift;
 
-  foreach my $s ( @{$self->getSegNames()} ) {
+  my $renum=0;
+
+  my $slist=$self->getSegNames();
+  foreach my $s ( @{$slist} ) {
     if ($s->{name}=~/^WT/) {
       my $c=$s->{chainrec};
       my $r=$c->{res};
@@ -2788,7 +2979,30 @@ sub renumberWaterSegments {
         } 
         $num++;
       }
-    }
+      $renum=1;
+    } 
+  }
+
+  if (!$renum) {
+    my $num=9999;
+    my $nseg=0;
+    my $segname;
+    foreach my $c (@{$self->{chain}}) {
+      foreach my $a ( @{$c->{atom}} ) {
+        if ($a->{resname} eq "TIP3" || $a->{resname} eq "HOH") {
+          if ($a->{atomname} eq "OH2") {
+            $num++;
+          }  
+          if ($num>9999) {
+            $num=1;
+            $nseg++;
+            $segname=sprintf("WT%02d",$nseg);
+          }
+          $a->{resnum}=$num;
+          $a->{seg}=$segname;
+        }       
+      }
+    }  
   }
 }
 
@@ -2917,7 +3131,10 @@ sub centerOfMass {
 
 ## method: wrap(by,boxx,boxy,boxz)
 ## wraps the current structure with respect to the origin
-## by: atom, chain (based on center of mass for each system), system (entire system)
+## by: atom, 
+##     chain (based on center of mass for each system), 
+##     system (entire system)
+##     reimage (needs scx,scy,scz)
 
 sub wrap {
   my $self=shift;
@@ -2925,6 +3142,9 @@ sub wrap {
   my $boxx=shift;
   my $boxy=shift;
   my $boxz=shift;
+  my $scx=shift;
+  my $scy=shift;
+  my $scz=shift;
 
   $boxx=10 if (!defined $boxx || $boxx<=0.001);
   $boxy=10 if (!defined $boxy || $boxy<=0.001);
@@ -2982,6 +3202,24 @@ sub wrap {
         $atom->[$i]->{xcoor}+=$dx-$cx;
         $atom->[$i]->{ycoor}+=$dy-$cy;
         $atom->[$i]->{zcoor}+=$dz-$cz;
+      }
+    }
+  } elsif ($by eq "reimage") {
+    foreach my $c ( @{$self->{chain}} ) {
+      my $atom=$c->{atom};
+      for (my $i=0; $i<=$#{$atom}; $i++) {
+        my $cx=$atom->[$i]->{xcoor};
+        my $cy=$atom->[$i]->{ycoor};
+        my $cz=$atom->[$i]->{zcoor};
+        my $dx=($scx-$cx);
+        my $dy=($scy-$cy);
+        my $dz=($scz-$cz);
+        $dx=$boxx*&GenUtil::nint($dx/$boxx); 
+        $dy=$boxy*&GenUtil::nint($dy/$boxy); 
+        $dz=$boxz*&GenUtil::nint($dz/$boxz); 
+        $atom->[$i]->{xcoor}+=$dx;
+        $atom->[$i]->{ycoor}+=$dy;
+        $atom->[$i]->{zcoor}+=$dz;
       }
     }
   }   
@@ -3723,6 +3961,9 @@ sub completeWater {
 sub completeResidue {
   my $self=shift;
   my $sicho=shift;
+  my $fixca=shift;
+
+  $fixca=1 if (!defined $fixca);
 
   my $defchain=$self->{defchain};
 
@@ -3797,7 +4038,8 @@ sub completeResidue {
 #    printf STDERR "scwrlnogly: %d\n",$scwrlnogly; 
 
     if ($#backlist>=0 && join("::",@backlist) ne join("::",@sicholist)) {
-      my $option="-backonly -fixca ";
+      my $option="-backonly ";  
+      $option.="-fixca " if ($fixca);
       my $refpdb;
       my $fraglist;
       if ($#backlist+1 < $#{$c->{res}}) {
@@ -3846,7 +4088,8 @@ sub completeResidue {
       waitpid($pid,0);
     }
     if ($#sicholist>=0 && $sichonogly && (!defined $sicho || $sicho)) {
-      my $option="-fixca ";
+      my $option="";
+      $option.="-fixca " if ($fixca);
       my $refpdb;
       my $fraglist;
       if ($#sicholist+1 < $#{$c->{res}}) {
@@ -4735,13 +4978,17 @@ sub _pdbLine {
 
   my $resnumstr;
   if ($pdbrec->{resnum}>999 && $chmode) {
-    if ($pdbrec->{resnum}>9999) {
+    if (defined $pdbrec->{aresnum} && $pdbrec->{aresnum}=~/[A-Z]/) {
+      $resnumstr=sprintf(" %4s ",$pdbrec->{aresnum});
+    } elsif ($pdbrec->{resnum}>9999) {
       $resnumstr=sprintf("%5d",$pdbrec->{resnum});
     } else {
       $resnumstr=sprintf(" %4d ",$pdbrec->{resnum});
     }
   } else {
-    if ($pdbrec->{resnum}>9999) {
+    if (defined $pdbrec->{aresnum} && $pdbrec->{aresnum}=~/[A-Z]/) {
+      $resnumstr=sprintf(" %4s ",$pdbrec->{aresnum});
+    } elsif ($pdbrec->{resnum}>9999) {
       $resnumstr=sprintf("%5d",$pdbrec->{resnum});
     } else {
       $resnumstr=sprintf("%4d  ",$pdbrec->{resnum});
@@ -6715,7 +6962,11 @@ sub parseSelection {
     if ($s=~/:/) {
       my @fc=split(/:/,$s);
       foreach my $cs ( split(/\+/,$fc[0]) ) {
-	if ($cs=~/^[A-Z0-9a-z\_\-\=]$/) {
+        if ($cs=~/^seg=(.+)$/) {
+          push(@{$trec->{segment}},$1);
+        } elsif ($cs=~/^chain=(.+)$/) {
+          push(@{$trec->{chain}},$1);
+        } elsif ($cs=~/^[A-Z0-9a-z\_\-\=]$/) {
 	  push(@{$trec->{chain}},$cs);
 	} else {
 	  push(@{$trec->{segment}},$cs);
