@@ -87,8 +87,10 @@ sub new {
     $exec=$charmmexec;
   }
 
-  die "cannot execute binary" if ((!-x $exec) && ($exec !~ "mpi") &&
-    ($exec !~ "ibrun"));
+  my @execarr=split(/\s+/,$exec);
+ 
+  die "cannot execute binary" if ((!-x $execarr[0]) && ($execarr[0] !~ "mpi") &&
+    ($execarr[0] !~ "ibrun"));
 
   if (defined $prunnodes && defined $prunbase && defined $pruncpus ) {
     $exec="mprun -N $prunnodes -n $pruncpus -B $prunbase $exec";
@@ -102,7 +104,7 @@ sub new {
     die "open2 for $exec failed";
 
   printf $o2write "* title\n*\n\n";
-  printf $o2write "dimension chsize %d\n",500000;
+  printf $o2write "dimension chsize %d\n",500000 unless ($exec=~/chsize/);
   printf $o2write "UNBUFIO\n";
 
   $self->{handle}->{fromcharmm}=$o2read;
@@ -804,7 +806,15 @@ sub loadParameters {
     }
   } elsif ($self->{par}->{param} eq "36") {
     $topfile="$datadir/top_all36_prot.rtf:$datadir/top_all36_na.rtf";
-    $parfile="$datadir/par_all36_prot.prm:$datadir/par_all36_na.prm";
+    if (-r "$datadir/par_all36m_prot.prm") {
+      $parfile="$datadir/par_all36m_prot.prm:$datadir/par_all36_na.prm";
+    } elsif ( -r "$datadir/par_all36_prot.prm") {
+      $parfile="$datadir/par_all36_prot.prm:$datadir/par_all36_na.prm";
+    } else {
+      printf STDERR "cannot find protein parameter file %s/par_all36_prot.prm or %s/par_all36m_prot.prm\n",
+                    $datadir,$datadir;
+      exit 1;
+    }
   } elsif ($self->{par}->{param} eq "mmff") {
     $self->_sendCommand("faster off");
     $self->_sendCommand("use mmff force field");
@@ -1284,7 +1294,7 @@ sub setupFromMolecule {
     if (exists $thave{$f->{name}})  {
       $first="first $thave{$f->{name}}->{first}";
       $last="last $thave{$f->{name}}->{last}";
-    } elsif ($f->{name} =~ /^N/) {
+    } elsif ($f->{name} =~ /^N/ || $f->{name} =~ /^R/) {
       $first=(defined $self->{par}->{nuc5ter})?"first $self->{par}->{nuc5ter}":"first 5TER" ;
       $last=(defined $self->{par}->{nuc3ter})?"last $self->{par}->{nuc3ter}":"last 3TER" ;
     } elsif ($terminal eq "none") {

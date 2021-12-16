@@ -10,7 +10,7 @@ sub usage {
   printf STDERR "usage:   enscluster.pl [options] tag\n";
   printf STDERR "options: [-jclust] [-kclust]\n";
   printf STDERR "         [-maxnum value] [-minsize value] [-maxlevel value]\n";
-  printf STDERR "         [-radius value] [-[no]iterate]\n";
+  printf STDERR "         [-radius value] [-[no]iterate] [-maxerr value]\n";
   printf STDERR "         [-mode rmsd|contact|phi|psi|phipsi|mix]\n";
   printf STDERR "         [-contmaxdist value] [-mixfactor value]\n";
   printf STDERR "         [-l min:max[=min:max ...]] [-fit min:max[=min:max] | -fitxl]\n";
@@ -40,6 +40,7 @@ use GenUtil;
 my %defpar = (
  clustermaxnum      => 4,
  clustermaxlevel    => 999,
+ clustermaxerr      => 0.01,
  clustermode        => "rmsd",
  clustercontmaxdist => 10.0,
  clustermethod      => "kclust",
@@ -93,6 +94,9 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-maxlevel") {
     shift @ARGV;
     $par{clustermaxlevel}=shift @ARGV;
+  } elsif ($ARGV[0] eq "-maxerr") {
+    shift @ARGV;
+    $par{clustermaxerr}=shift @ARGV;
   } elsif ($ARGV[0] eq "-mode") {
     shift @ARGV;
     $par{clustermode}=shift @ARGV;
@@ -189,6 +193,7 @@ my $cluster=Cluster::new(filetype=>"pdb",
 			 fraglist=>$ens->{par}->{fraglist},
                          fitfraglist=>$fitfraglist,
                          maxnum=>$ens->{opt}->{clustermaxnum},
+                         maxerr=>$ens->{opt}->{clustermaxerr},
 			 minsize=>$ens->{opt}->{clusterminsize},
 			 radius=>$ens->{opt}->{clusterradius},
                          iterate=>$ens->{opt}->{clusteriterate},

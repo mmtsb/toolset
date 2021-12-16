@@ -695,11 +695,14 @@ sub doJob {
 ###
 
   $charmm->setupEnergy();
-  $charmm->shake();
   
   if ($#{$allcons}>=0) {
     $charmm->setupRestraints(1.0,$allcons);
   }
+
+  $charmm->noeRestraints();
+
+  $charmm->shake();
 
   $charmm->stream($custom->{setup}) 
     if (defined $custom && exists $custom->{setup});

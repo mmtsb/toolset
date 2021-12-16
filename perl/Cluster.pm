@@ -137,6 +137,7 @@ sub runCluster {
  
   if ($self->{par}->{method} eq "jclust") {
     $options.=" -max $self->{par}->{maxnum}";
+    $options.=" -cdist";
   } elsif ($self->{par}->{method} eq "kclust") {
     $options.=" -cdist";
     $options.=" -radius $self->{par}->{radius}";
@@ -183,7 +184,6 @@ sub runCluster {
 
   printf STDERR "$clustexe $options\n";
   
-
   local (*READ,*WRITE);
   my $pid=open2(*READ,*WRITE,"$clustexe $options");
   
