@@ -75,7 +75,6 @@ int main(int argc, char **argv) {
   double solvcut=2.10;
 
   strcpy(boxfile,"water.pdb");
-
   if (argc<2) {
     usage();
   }
@@ -134,8 +133,8 @@ int main(int argc, char **argv) {
 
   nsolvbox=0;
 
-  int soluteStart[5000000];
-  int solventStart[5000000];
+  int *soluteStart=new int[5000000];
+  int *solventStart=new int[5000000];
 
   readPDB(boxfile,solvent,nsolvent,solventStart,nsolventres);
   readPDB(pdbfile,solute,nsolute,soluteStart,nsoluteres);
@@ -361,4 +360,6 @@ int main(int argc, char **argv) {
   delete solvadd;
   delete solute;
   delete solvent;
+  delete soluteStart;
+  delete solventStart;
 }
