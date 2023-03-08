@@ -6106,7 +6106,9 @@ sub genPRIMO2 {
     my $nc=undef;
 
     my $natom=1;
-    foreach my $r (@{$c->{res}}) {
+    my $nres=$#{$c->{res}}+1;
+    for (my $ir=0; $ir<$nres; $ir++) {
+      my $r=$c->{res}->[$ir];
       $nc=$n->_newChain($c->{id}) if (!defined $nc);
 
       my $rrec={};
@@ -6187,28 +6189,6 @@ sub genPRIMO2 {
         # do nothing if the residues belong to DNA or RNA
       } else {
 	printf STDERR "cannot find atom CO for residue %s:%s:%d\n",$r->{chain},$r->{name},$r->{resnum};
-      }
-
-      if (($r->{name} eq "ALA" || $r->{name} eq "ASN" || $r->{name} eq "ASP" || $r->{name} eq "VAL" || $r->{name} eq "ILE" || $r->{name} eq "LEU" || $r->{name} eq "PRO" || $r->{name} eq "CYS" || $r->{name} eq "PHE" || $r->{name} eq "TYR" || $r->{name} eq "TRP" || $r->{name} eq "GLN" || $r->{name} eq "GLU" || $r->{name} eq "LYS" || $r->{name} eq "ARG" || $r->{name} eq "HSD" || $r->{name} eq "HSP" || $r->{name} eq "HIS" || $r->{name} eq "HSE" || $r->{name} eq "MET" || $r->{name} eq "THR" || $r->{name} eq "SER" || $r->{name} eq "GLY")) {
-	if (exists $alook{'OT2'} || exists $alook{'OXT'} ) {
-           my $x=0.0;
-           my $y=0.0;
-           my $z=0.0;
-
-           if (exists $alook{'OT2'}) {
-  	     $x=$alook{'OT2'}->{xcoor};
-	     $y=$alook{'OT2'}->{ycoor};
-	     $z=$alook{'OT2'}->{zcoor};
-           } elsif (exists $alook{'OXT'}) {
-  	     $x=$alook{'OXT'}->{xcoor};
-	     $y=$alook{'OXT'}->{ycoor};
-	     $z=$alook{'OXT'}->{zcoor};
-           } 
-	   my $arec={ atominx => $natom++, atomname => "OX", 
-		   resname => $r->{name}, resnum  => $r->{num}, chain=> $r->{chain},
-		   xcoor   => $x, ycoor => $y, zcoor => $z, valid=>1 };
-	   push(@{$nc->{atom}},$arec);
-        }
       }
 
 
@@ -6632,6 +6612,54 @@ sub genPRIMO2 {
 		   resname => $r->{name}, resnum  => $r->{num}, chain=> $r->{chain},
 		   xcoor   => $x, ycoor => $y, zcoor => $z, valid=>1 };
 	push(@{$nc->{atom}},$arec);
+      }
+
+      if (($r->{name} eq "ALA" || $r->{name} eq "ASN" || $r->{name} eq "ASP" || $r->{name} eq "VAL" || $r->{name} eq "ILE" || $r->{name} eq "LEU" || $r->{name} eq "PRO" || $r->{name} eq "CYS" || $r->{name} eq "PHE" || $r->{name} eq "TYR" || $r->{name} eq "TRP" || $r->{name} eq "GLN" || $r->{name} eq "GLU" || $r->{name} eq "LYS" || $r->{name} eq "ARG" || $r->{name} eq "HSD" || $r->{name} eq "HSP" || $r->{name} eq "HIS" || $r->{name} eq "HSE" || $r->{name} eq "MET" || $r->{name} eq "THR" || $r->{name} eq "SER" || $r->{name} eq "GLY")) {
+	if ($ir==$nres-1) {
+           my $x=0.0;
+           my $y=0.0;
+           my $z=0.0;
+           if (exists $alook{'OT2'}) {
+  	     $x=$alook{'OT2'}->{xcoor};
+	     $y=$alook{'OT2'}->{ycoor};
+	     $z=$alook{'OT2'}->{zcoor};
+           } elsif (exists $alook{'OXT'}) {
+  	     $x=$alook{'OXT'}->{xcoor};
+	     $y=$alook{'OXT'}->{ycoor};
+	     $z=$alook{'OXT'}->{zcoor};
+           } else {
+             my $tcx=$alook{'C'}->{xcoor}-$alook{'CA'}->{xcoor};
+             my $tcy=$alook{'C'}->{ycoor}-$alook{'CA'}->{ycoor};
+             my $tcz=$alook{'C'}->{zcoor}-$alook{'CA'}->{zcoor};
+             my $ltc=sqrt($tcx*$tcx+$tcy*$tcy+$tcz*$tcz);
+      
+             $tcx/=$ltc;
+             $tcy/=$ltc;
+             $tcz/=$ltc;
+     
+             if (exists $alook{'OT1'}) { 
+               my $t1x=$alook{'OT1'}->{xcoor}-$alook{'C'}->{xcoor};
+               my $t1y=$alook{'OT1'}->{ycoor}-$alook{'C'}->{ycoor};
+               my $t1z=$alook{'OT1'}->{zcoor}-$alook{'C'}->{zcoor};
+               my $c1=($tcx*$t1x+$tcy*$t1y+$tcz*$t1z);
+               $x=$alook{'OT1'}->{xcoor}+2.0*($c1*$tcx-$t1x);
+               $y=$alook{'OT1'}->{ycoor}+2.0*($c1*$tcy-$t1y);
+               $z=$alook{'OT1'}->{zcoor}+2.0*($c1*$tcz-$t1z);
+             } else {
+               my $t1x=$alook{'O'}->{xcoor}-$alook{'C'}->{xcoor};
+               my $t1y=$alook{'O'}->{ycoor}-$alook{'C'}->{ycoor};
+               my $t1z=$alook{'O'}->{zcoor}-$alook{'C'}->{zcoor};
+               my $c1=($tcx*$t1x+$tcy*$t1y+$tcz*$t1z);
+               $x=$alook{'O'}->{xcoor}+2.0*($c1*$tcx-$t1x);
+               $y=$alook{'O'}->{ycoor}+2.0*($c1*$tcy-$t1y);
+               $z=$alook{'O'}->{zcoor}+2.0*($c1*$tcz-$t1z);
+             }
+           }
+	   my $arec={ atominx => $natom++, atomname => "OX", 
+		   resname => $r->{name}, resnum  => $r->{num}, chain=> $r->{chain},
+		   xcoor   => $x, ycoor => $y, zcoor => $z, valid=>1 };
+	   push(@{$nc->{atom}},$arec);
+        }
       }
 
 ## section for nucleic acids
