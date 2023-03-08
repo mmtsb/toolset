@@ -6189,6 +6189,29 @@ sub genPRIMO2 {
 	printf STDERR "cannot find atom CO for residue %s:%s:%d\n",$r->{chain},$r->{name},$r->{resnum};
       }
 
+      if (($r->{name} eq "ALA" || $r->{name} eq "ASN" || $r->{name} eq "ASP" || $r->{name} eq "VAL" || $r->{name} eq "ILE" || $r->{name} eq "LEU" || $r->{name} eq "PRO" || $r->{name} eq "CYS" || $r->{name} eq "PHE" || $r->{name} eq "TYR" || $r->{name} eq "TRP" || $r->{name} eq "GLN" || $r->{name} eq "GLU" || $r->{name} eq "LYS" || $r->{name} eq "ARG" || $r->{name} eq "HSD" || $r->{name} eq "HSP" || $r->{name} eq "HIS" || $r->{name} eq "HSE" || $r->{name} eq "MET" || $r->{name} eq "THR" || $r->{name} eq "SER" || $r->{name} eq "GLY")) {
+	if (exists $alook{'OT2'} || exists $alook{'OXT'} ) {
+           my $x=0.0;
+           my $y=0.0;
+           my $z=0.0;
+
+           if (exists $alook{'OT2'}) {
+  	     $x=$alook{'OT2'}->{xcoor};
+	     $y=$alook{'OT2'}->{ycoor};
+	     $z=$alook{'OT2'}->{zcoor};
+           } elsif (exists $alook{'OXT'}) {
+  	     $x=$alook{'OXT'}->{xcoor};
+	     $y=$alook{'OXT'}->{ycoor};
+	     $z=$alook{'OXT'}->{zcoor};
+           } 
+	   my $arec={ atominx => $natom++, atomname => "OX", 
+		   resname => $r->{name}, resnum  => $r->{num}, chain=> $r->{chain},
+		   xcoor   => $x, ycoor => $y, zcoor => $z, valid=>1 };
+	   push(@{$nc->{atom}},$arec);
+        }
+      }
+
+
       if (($r->{name} eq "ALA" || $r->{name} eq "ASN" || $r->{name} eq "ASP" || $r->{name} eq "LEU"  ) && 
 	  exists $alook{'CB'}) {
 	my $x=$alook{'CB'}->{xcoor};
