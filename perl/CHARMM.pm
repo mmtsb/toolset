@@ -4385,7 +4385,7 @@ sub quasiHarmonicAnalysis {
   
   my $cmd=sprintf("vibran nmode %d\n",$totmodes);
  
-  $cmd.=sprintf("quasi nfreq %d nadd %d nunit 1 firstu 22 sele %s end temp %f\n",
+  $cmd.=sprintf("quasi nfreq %d nadd %d nunit 1 firstu 22 sele %s end temp %f MEANasref\n",
 		$nmodes,$totmodes-$nmodes,$par{selq},$temperature);
   for (my $imode=$nmodes; $imode>=1; $imode--) {
     $cmd.="print norm mode $imode vect\n";
@@ -5516,7 +5516,7 @@ sub analyzeMinimumDistance {
   }
 
   $self->_sendCommand($cmd);
-  my @res=$self->parseOutput("\\s*([0-9]+)\\s*(\\S+)\\s*(\\S+)\\s*([0-9]+)\\s*(\\S+)\\s*-\\s*([0-9]+)\\s*(\\S+)\\s*(\\S+)\\s*([0-9]+)\\s*(\\S+)\\s*([0-9\\.]+)\\s*");
+  my @res=$self->parseOutput("\\s*([0-9\\*]+)\\s*(\\S+)\\s*(\\S+)\\s*([0-9\\*]+)\\s*(\\S+)\\s*-\\s*([0-9\\*]+)\\s*(\\S+)\\s*(\\S+)\\s*([0-9\\*]+)\\s*(\\S+)\\s*([0-9\\.]+)\\s*");
   return $res[10],sprintf("%s:%s:%s:%s",$res[1],$res[2],$res[3],$res[4]),sprintf("%s:%s:%s:%s",$res[6],$res[7],$res[8],$res[9]);
 }
 
