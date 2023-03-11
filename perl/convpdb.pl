@@ -43,6 +43,7 @@ sub usage {
   printf STDERR "         [-removeclashes] [-clashes] [-clashcut value]\n";
   printf STDERR "         [-wrap boxx boxy boxz] [-by chain|atom|system]\n";
   printf STDERR "         [-reimage cx cy cz]\n";
+  printf STDERR "         [-xyzcoor file[:xinx:yinx:zinx]]\n";
   exit 1;
 }
 
@@ -150,6 +151,11 @@ my $scx=undef;
 my $scy=undef;
 my $scz=undef;
 
+my $xyzfile=undef;
+my $xinx=1;
+my $yinx=2;
+my $zinx=3;
+
 while ($#ARGV>=0) {
   if ($ARGV[0] eq "-help" || $ARGV[0] eq "-h") {
     &usage();
@@ -165,6 +171,15 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-setseg") {
     shift @ARGV;
     $setseg=shift @ARGV;
+  } elsif ($ARGV[0] eq "-xyzcoor") {
+    shift @ARGV;
+    my @tf=split(/:/,shift @ARGV);
+    $xyzfile=$tf[0];
+    if ($#tf>0) {
+      $xinx=$tf[1];
+      $yinx=$tf[2];
+      $zinx=$tf[3];
+    }  
   } elsif ($ARGV[0] eq "-setall") {
     shift @ARGV;
     $setall=1;
@@ -574,6 +589,31 @@ if ($mol2) {
 } else {
   $mol->readPDB($fname,translate=>$inmode,ignoreseg=>$ignoreseg,splitseg=>$splitseg,alternate=>$alternate,
 		chainfromseg=>$chainfromseg,model=>$selmodel,firstmodel=>$firstmodel);
+}
+
+if (defined $xyzfile) {
+  my @xyz=();
+  my $inp=&GenUtil::getInputFile($xyzfile);
+  while (<$inp>) {
+    chomp;
+    s/^\s+//;
+    my @tf=split(/\s+/);
+    my $trec={};
+    $trec->{x}=$tf[$xinx-1];
+    $trec->{y}=$tf[$yinx-1];
+    $trec->{z}=$tf[$zinx-1];
+    push(@xyz,$trec);
+  }
+  undef $inp;
+  my $counter=0;
+  foreach my $c ( @{$mol->{chain}}) {
+    foreach my $a ( @{$c->{atom}} ) {
+      $a->{xcoor}=$xyz[$counter]->{x};
+      $a->{ycoor}=$xyz[$counter]->{y};
+      $a->{zcoor}=$xyz[$counter]->{z};
+      $counter++;
+    } 
+  }
 }
 
 if ($removeclashes || $clashes) {
