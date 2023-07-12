@@ -15,6 +15,9 @@ sub usage {
   printf STDERR "         [-noout]\n";
   printf STDERR "         [-charge] [-weight] [-volume]\n";
   printf STDERR "         [-dipole] [-mass] [-oxyz]\n";
+  printf STDERR "         [-dist Selection Selection]\n";
+  printf STDERR "         [-angle Selection Selection Selection]\n";
+  printf STDERR "         [-dihedral Selection Selection Selection Selection]\n";
   printf STDERR "         [-psf PSFfile CRDfile]\n";
   printf STDERR "         [-mol2 MOL2file]\n";
   printf STDERR "         [-par CHARMMparams]\n";
@@ -63,8 +66,16 @@ my $charge=0;
 my $weight=0;
 my $dipole=0;
 my $volume=0;
+my $dist=0;
+my $angle=0;
+my $dihedral=0;
 my $mass=0;
 my $oxyz=0;
+
+my $selection1;
+my $selection2;
+my $selection3;
+my $selection4;
 
 my $customfile;
 
@@ -97,6 +108,24 @@ while ($#ARGV>=0 && !$done) {
   } elsif ($ARGV[0] eq "-dipole") {
     shift @ARGV;
     $dipole=1;
+  } elsif ($ARGV[0] eq "-dist") {
+    shift @ARGV;
+    $selection1=shift @ARGV;
+    $selection2=shift @ARGV;
+    $dist=1;
+  } elsif ($ARGV[0] eq "-angle") {
+    shift @ARGV;
+    $selection1=shift @ARGV;
+    $selection2=shift @ARGV;
+    $selection3=shift @ARGV;
+    $angle=1;
+  } elsif ($ARGV[0] eq "-dihedral") {
+    shift @ARGV;
+    $selection1=shift @ARGV;
+    $selection2=shift @ARGV;
+    $selection3=shift @ARGV;
+    $selection4=shift @ARGV;
+    $dihedral=1;
   } elsif ($ARGV[0] eq "-mass") {
     shift @ARGV;
     $mass=1;
@@ -179,6 +208,33 @@ if ($charge) {
   $charmm->finish(); 
   printf "dipole: %10.5f D, x: %10.5f D, y: %10.5f D, z: %10.5f D\n",
     $dipole,$dipx,$dipy,$dipz;
+} elsif ($dist) {
+  my $sel1="SL1";
+  $charmm->defineSelection($selection1,$sel1);
+  my $sel2="SL2";
+  $charmm->defineSelection($selection2,$sel2);
+  my $result=$charmm->analyzeDistance(selection1=>$sel1,selection2=>$sel2,mass=>$mass);
+  printf "distance: %lf\n",$result;
+} elsif ($angle) {
+  my $sel1="SL1";
+  $charmm->defineSelection($selection1,$sel1);
+  my $sel2="SL2";
+  $charmm->defineSelection($selection2,$sel2);
+  my $sel3="SL3";
+  $charmm->defineSelection($selection3,$sel3);
+  my $result=$charmm->analyzeAngle(selection1=>$sel1,selection2=>$sel2,selection3=>$sel3,mass=>$mass);
+  printf "angle: %lf\n",$result;
+} elsif ($dihedral) {
+  my $sel1="SL1";
+  $charmm->defineSelection($selection1,$sel1);
+  my $sel2="SL2";
+  $charmm->defineSelection($selection2,$sel2);
+  my $sel3="SL3";
+  $charmm->defineSelection($selection3,$sel3);
+  my $sel4="SL4";
+  $charmm->defineSelection($selection4,$sel4);
+  my $result=$charmm->analyzeDihedral(selection1=>$sel1,selection2=>$sel2,selection3=>$sel3,selection4=>$sel4,mass=>$mass);
+  printf "dihedral: %lf\n",$result;
 } elsif ($#olist>=0) {
   my $ener=$charmm->getEnergy($sellist,$selfe);
 

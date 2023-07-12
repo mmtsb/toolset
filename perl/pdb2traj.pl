@@ -10,6 +10,8 @@ sub usage {
   printf STDERR "options: [-f listfile]\n";
   printf STDERR "         [-out file]\n";
   printf STDERR "         [-nsel selection]\n";
+  printf STDERR "         [-fit] [-l min:max[=..]] [-sel cab|ca|cb|p|heavy]\n";
+  printf STDERR "         [-ref PDB]\n";
   exit 1;
 }
 
@@ -29,6 +31,11 @@ my @filelist;
 my $outfile="traj.dcd";
 my $sel=undef;
 
+my $fit=0;
+my $refpdb=undef;
+my $fraglist=undef;
+my $selmode="cab";
+
 while ($#ARGV>=0) {
   if ($ARGV[0] eq "-help" || $ARGV[0] eq "-h") {
     &usage();
@@ -41,6 +48,18 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-nsel"){
     shift @ARGV;
     $sel=shift @ARGV;
+  } elsif ($ARGV[0] eq "-sel") {
+    shift @ARGV;
+    $selmode=shift @ARGV;
+  } elsif ($ARGV[0] eq "-l") {
+    shift @ARGV;
+    $fraglist=&GenUtil::fragListFromOption(shift @ARGV);
+  } elsif ($ARGV[0] eq "-fit") {
+    shift @ARGV;
+    $fit=1;
+  } elsif ($ARGV[0] eq "-ref") {
+    shift @ARGV;
+    $refpdb=shift @ARGV;
   } elsif ($ARGV[0] =~ /^-/) {
     printf STDERR "invalid option %s\n",$ARGV[0];
     &usage();
@@ -63,6 +82,21 @@ if (defined $sel){
   $first->setValidSelection($sel);
   $first=$first->clone(1);
 }
+
+my $refmol;
+my $analyze;
+if ($fit) { 
+  if (defined $refpdb && -r $refpdb) {
+    $refmol=Molecule::new($refpdb);
+    if (defined $sel) {
+      $refmol->setValidSelection($sel);
+      $refmol=$refmol->clone(1);
+    }
+  } else {
+    $refmol=$first;
+  }
+  $analyze=Analyze::new($refmol);
+}
 		  
 my $natom=0;
 foreach my $c ( @{$first->{chain}} ) {
@@ -83,6 +117,11 @@ foreach my $f ( @filelist ) {
   if (defined $sel){
     $mol->setValidSelection($sel);
     $mol=$mol->clone(1);
+  }
+
+  if ($fit) {
+    $mol->setValidResidues($fraglist) if (defined $fraglist);
+    $analyze->lsqfit($mol,$selmode,0);
   }
 		    
   my ($xbuf,$ybuf,$zbuf);
