@@ -1894,7 +1894,7 @@ sub chi2 {
       $inx4{$key}=$a 
 	if (($a->{atomname} eq "CD" && 
 	     $a->{resname}=~/(ARG|GLN|GLU|ILE|LYS|PRO)/) ||
-	    ($a->{atomname} eq "CD1" && $a->{resname}=~/(LEU|PHE|TRP|TYR)/) ||
+	    ($a->{atomname} eq "CD1" && $a->{resname}=~/(LEU|PHE|TRP|TYR|ILE)/) ||
 	    ($a->{atomname} eq "OD1" && $a->{resname}=~/(ASN|ASP)/) ||
 	    ($a->{atomname} eq "ND1" && $a->{resname}=~/(HIS|HSD|HSE|HSP|HID|HIE|HIP)/) ||
 	    ($a->{atomname} eq "SD" && $a->{resname}=~/(MET)/));
@@ -1990,7 +1990,7 @@ sub chi4 {
 	    ($a->{atomname} eq "CE" && $a->{resname}=~/(LYS)/));
       $inx4{$key}=$a 
 	if (($a->{atomname} eq "CZ" && $a->{resname}=~/(ARG)/) ||
-	    ($a->{atomname} eq "NZ1" && $a->{resname}=~/(LYS)/));
+	    ($a->{atomname} eq "NZ" && $a->{resname}=~/(LYS)/));
     }
   }
     
