@@ -1842,7 +1842,7 @@ sub chi1 {
       $inx3{$key}=$a if ($a->{atomname} eq "CB");
       $inx4{$key}=$a 
 	if (($a->{atomname} eq "CG" && 
-	     $a->{resname}=~/(GLU|PRO|LYS|GLN|ARG|LEU|PHE|TYR|TRP|ASN|ASP|MET|HIS)/) ||
+	     $a->{resname}=~/(GLU|PRO|LYS|GLN|ARG|LEU|PHE|TYR|TRP|ASN|ASP|MET|HIS|HSD|HSP|HSE|HID|HIE|HIP)/) ||
 	    ($a->{atomname} eq "OG" && $a->{resname}=~/(SER)/) ||
 	    ($a->{atomname} eq "OG1" && $a->{resname}=~/(THR)/) ||
 	    ($a->{atomname} eq "CG1" && $a->{resname}=~/(VAL|ILE)/) ||
