@@ -4339,6 +4339,7 @@ sub solvate {
   my $tip4p=shift;
   my $center=shift;
   my $splitseg=shift;
+  my $fb=shift;
 
   #print STDERR "cutoff= $cutoff shape= $shape tip4p= $tip4p center= $center\n";
   $cutoff=9.0 if (!defined $cutoff);
@@ -4351,11 +4352,12 @@ sub solvate {
   $option.="-tip4p " if (defined $tip4p && $tip4p);
   $option.="-center " if (defined $center && $center);
   $option.="-nocenter " if (defined $center && !$center);
+  $option.="-fixbox $fb->{xmin} $fb->{xmax} $fb->{ymin} $fb->{ymax} $fb->{zmin} $fb->{zmax}" if (defined $fb);
   my $solvatebin=&GenUtil::findExecutable("solvate");
   die "cannot find solvate executable"
     if (!defined $solvatebin);
 
-#  printf STDERR "running $solvatebin $option -\n";
+  #printf STDERR "running $solvatebin $option -\n";
 
   local (*READ,*WRITE,*ERR);
   my $pid=open3(*WRITE,*READ,*ERR,"$solvatebin $option -");

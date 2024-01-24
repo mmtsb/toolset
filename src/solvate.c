@@ -1,6 +1,7 @@
 // http://mmtsb.scripps.edu/doc/solvate.html
 // 2000, Michael Feig (meikel@scripps.edu)
 // Brooks group, The Scripps Research Institute 
+// rewritten 2023, Michael Feig (feig@msu.edu)
 
 // *** C++ code ***
 //
@@ -24,6 +25,7 @@ void usage() {
  fprintf(stderr,"         [-res min max] [-cubic] [-octahedron]\n");
  fprintf(stderr,"         [-solvcut value]\n");
  fprintf(stderr,"         [-[no]center]\n");
+ fprintf(stderr,"         [-fixbox xmin xmax ymin ymax zmin zmax]\n");
  exit(1);
 }
 
@@ -59,7 +61,6 @@ void readPDB(char *pdbName, PDBEntry *pdb, int& natom, int *resStart, int& nres)
   resStart[nres]=natom;
 }
 
-
 int main(int argc, char **argv) {
   char pdbfile[256];
   double cutoff=9.0;
@@ -78,6 +79,14 @@ int main(int argc, char **argv) {
   if (argc<2) {
     usage();
   }
+
+  double boxminx=0.0;
+  double boxmaxx=0.0;
+  double boxminy=0.0;
+  double boxmaxy=0.0;
+  double boxminz=0.0;
+  double boxmaxz=0.0;
+  int fixbox=0;
 
   int i;
   for (i=1; i<argc; i++) {
@@ -101,6 +110,16 @@ int main(int argc, char **argv) {
       center=1;
     } else if (!strcmp(argv[i],"-nocenter")) {
       center=0;
+    } else if (!strcmp(argv[i],"-fixbox")) {
+      fixbox=1;
+      boxminx=atof(argv[++i]);
+      boxmaxx=atof(argv[++i]);
+      boxminy=atof(argv[++i]);
+      boxmaxy=atof(argv[++i]);
+      boxminz=atof(argv[++i]);
+      boxmaxz=atof(argv[++i]);
+      center=0;
+      octamode=0;
     } else if (!strcmp(argv[i],"-help")) {
       usage();
     } else {
@@ -139,11 +158,11 @@ int main(int argc, char **argv) {
   readPDB(boxfile,solvent,nsolvent,solventStart,nsolventres);
   readPDB(pdbfile,solute,nsolute,soluteStart,nsoluteres);
 
-  fprintf(stderr,"read %d atoms, %d residues from %s\n",
-	  nsolvent,nsolventres,boxfile);
-  fprintf(stderr,"read %d atoms, %d residues from %s\n",
-	  nsolute,nsoluteres,pdbfile);
-
+ // fprintf(stderr,"read %d atoms, %d residues from %s\n",
+ //	  nsolvent,nsolventres,boxfile);
+ // fprintf(stderr,"read %d atoms, %d residues from %s\n",
+ //	  nsolute,nsoluteres,pdbfile);
+  
   Vector cofm;
   for (i=0; i<nsolute; i++) {
     cofm+=solute[i].coordinates();
@@ -156,6 +175,7 @@ int main(int argc, char **argv) {
   int ix,iy,iz,in,ip,ipa,iwa;
 
   Vector min(99999.0,99999.0,99999.0), max(-99999.0,-99999.0,-99999.0);
+  
   for (i=0; i<nsoluteres; i++) {
     for (ipa=soluteStart[i]; ipa<soluteStart[i+1]; ipa++) {
       if (center) {
@@ -169,10 +189,10 @@ int main(int argc, char **argv) {
       ts.write(stdout);
 
       if (solute[ipa].coordinates().x()<min.x()) {
-	min.x()=solute[ipa].coordinates().x();
+        min.x()=solute[ipa].coordinates().x();
       }
       if (solute[ipa].coordinates().x()>max.x()) {
-	max.x()=solute[ipa].coordinates().x();
+        max.x()=solute[ipa].coordinates().x();
       }
       if (solute[ipa].coordinates().y()<min.y()) {
 	min.y()=solute[ipa].coordinates().y();
@@ -189,28 +209,60 @@ int main(int argc, char **argv) {
     }
   }
 
-  Vector dim((max.x()>-min.x())?max.x():-min.x(),
-             (max.y()>-min.y())?max.y():-min.y(),
-	     (max.z()>-min.z())?max.z():-min.z());
-
-  dim+=cutoff;
-  dim*=2.0;
-
-  if (cubicmode) {
-    Vector cVec;
-    if (dim.x()>=dim.y() && dim.x()>=dim.z()) {
-      cVec=Vector(dim.x(),dim.x(),dim.x());
-    } else if (dim.y()>=dim.x() && dim.y()>=dim.z()) {
-      cVec=Vector(dim.y(),dim.y(),dim.y());
+  if (fixbox) {
+    min=Vector(boxminx,boxminy,boxminz);
+    max=Vector(boxmaxx,boxmaxy,boxmaxz);
+  } else {
+    if (cofm.x()-min.x()>max.x()-cofm.x()) {
+      max.x()=cofm.x()+cofm.x()-min.x();
     } else {
-      cVec=Vector(dim.z(),dim.z(),dim.z());
+      min.x()=cofm.x()-(max.x()-cofm.x());
     }
-    dim=cVec;
+
+    if (cofm.y()-min.y()>max.y()-cofm.y()) {
+      max.y()=cofm.y()+cofm.y()-min.y();
+    } else {
+      min.y()=cofm.y()-(max.y()-cofm.y());
+    }
+
+    if (cofm.z()-min.z()>max.z()-cofm.z()) {
+      max.z()=cofm.z()+cofm.z()-min.z();
+    } else {
+      min.z()=cofm.z()-(max.z()-cofm.z());
+    }
+    min-=cutoff;
+    max+=cutoff;
+
+    if (cubicmode) {
+      Vector cVec;
+      if (max.x()>=max.y() && max.x()>=max.z()) {
+        cVec=Vector(max.x(),max.x(),max.x());
+      } else if (max.y()>=max.x() && max.y()>=max.z()) {
+        cVec=Vector(max.y(),max.y(),max.y());
+      } else {
+        cVec=Vector(max.z(),max.z(),max.z());
+      }
+      max=cVec;
+      if (min.x()<=min.y() && min.x()<=min.z()) {
+        cVec=Vector(min.x(),min.x(),min.x());
+      } else if (min.y()<=min.x() && min.y()<=min.z()) {
+        cVec=Vector(min.y(),min.y(),min.y());
+      } else {
+        cVec=Vector(min.z(),min.z(),min.z());
+      }
+      min=cVec;
+    }
   }
 
-  int xmult=int(dim.x()/boxwidth);
-  int ymult=int(dim.y()/boxwidth);
-  int zmult=int(dim.z()/boxwidth);
+  Vector dim=max-min;
+
+//  fprintf(stderr,"min: %lf %lf %lf\n",min.x(),min.y(),min.z());
+//  fprintf(stderr,"max: %lf %lf %lf\n",max.x(),max.y(),max.z());
+//  fprintf(stderr,"dim: %lf %lf %lf\n",dim.x(),dim.y(),dim.z());
+
+  int xmult=int(dim.x()/boxwidth)*2;
+  int ymult=int(dim.y()/boxwidth)*2;
+  int zmult=int(dim.z()/boxwidth)*2;
  
   if (octamode) {
     fprintf(stderr,"box size: %lf x %lf x %lf\n",
@@ -220,43 +272,41 @@ int main(int argc, char **argv) {
     fprintf(stderr,"box size: %lf x %lf x %lf\n",dim.x(),dim.y(),dim.z());
   } 
 
-  Vector boxdim=dim;
-
-  dim/=2.0;
-
-  for (ix=-xmult; ix<=xmult; ix++) {
-    for (iy=-ymult; iy<=ymult; iy++) {
-      for (iz=-zmult; iz<=zmult; iz++) {
+  for (ix=0; ix<=xmult; ix++) {
+    for (iy=0; iy<=ymult; iy++) {
+      for (iz=0; iz<=zmult; iz++) {
 	Vector a=Vector((double)ix,(double)iy,(double)iz);
 	a*=boxwidth;
+        a+=min; 
 	for (in=0; in<nsolventres; in++) {
 	  int good=0;
-	  int goodcut;
+	  int goodcut=0;
 	  Vector c=solvent[solventStart[in]].coordinates()+a;
-	  if (c.x()>-dim.x() && c.x()<dim.x() &&
-	      c.y()>-dim.y() && c.y()<dim.y() &&
-	      c.z()>-dim.z() && c.z()<dim.z()) {
+	  if (c.x()>min.x() && c.x()<max.x() &&
+	      c.y()>min.y() && c.y()<max.y() &&
+	      c.z()>min.z() && c.z()<max.z()) {
 	    good=1;
 
             int edge=0;
-            if (c.x()<-dim.x()+2.0 || c.x()>dim.x()-2.0 || 
-                c.y()<-dim.y()+2.0 || c.y()>dim.y()-2.0 ||
-                c.z()<-dim.z()+2.0 || c.z()>dim.z()-2.0) {
+            if (c.x()<min.x()+2.0 || c.x()>max.x()-2.0 || 
+                c.y()<min.y()+2.0 || c.y()>max.y()-2.0 ||
+                c.z()<min.z()+2.0 || c.z()>max.z()-2.0) {
               edge=1;
             } 
-
+            //fprintf(stderr,"have water at %lf %lf %lf\n",c.x(),c.y(),c.z());
 
 	    if (resmin>=0 && resmax>=resmin) {
-	      goodcut=0;
 	      for (ip=0; ip<nsoluteres && good; ip++) {
 		for (ipa=soluteStart[ip]; ipa<soluteStart[ip+1] && good; ipa++) {
 		  Vector d=c-solute[ipa].coordinates();
+                  d.pbc(dim);
 		  double dval=d*d;
 		  if (dval<solvcutsq) {
 		    good=0;
 		  } else if (dval<extsolvcutsq) {
 		    for (iwa=solventStart[in]+1; iwa<solventStart[in+1] && good; iwa++) {
 		      Vector dw=solvent[iwa].coordinates()+a-solute[ipa].coordinates();
+                      dw.pbc(dim);
 		      double dwval=dw*dw;
 		      
 		      if (dwval<solvcutsq) {
@@ -272,27 +322,24 @@ int main(int argc, char **argv) {
 	      }
 	    } else {
 	      goodcut=1;
-	      //              fprintf(stderr,"checking water\n");              
 	      for (ip=0; ip<nsoluteres && good; ip++) {
-		//                fprintf(stderr," ip: %d\n",ip);
 		for (ipa=soluteStart[ip]; ipa<soluteStart[ip+1] && good; ipa++) {
 		  Vector d=c-solute[ipa].coordinates();
+                  d.pbc(dim);
 		  double dval=d*d;
-		  //		  fprintf(stderr,"  ipa: %d %f %f\n",ipa,dval,sqrt(dval));
 		  if (dval<solvcutsq) {
 		    good=0;
 		  } else if (dval<extsolvcutsq) {
 		    for (iwa=solventStart[in]+1; iwa<solventStart[in+1] && good; iwa++) {
 		      Vector dw=solvent[iwa].coordinates()+a-solute[ipa].coordinates();
+                      dw.pbc(dim);
 		      double dwval=dw*dw;
-		      //		      fprintf(stderr,"   iwa: %d %f %f\n",iwa,dwval,sqrt(dwval));
 		      if (dwval<solvcutsq) {
 			good=0;
 		      }
 		    }
 		  }
 		}
-		//                fprintf(stderr," good: %d\n",good);
 	      }
 	    }
 
@@ -301,15 +348,14 @@ int main(int argc, char **argv) {
 	    double ty=solvent[iwa].coordinates().y()+a.y();
             double tz=solvent[iwa].coordinates().z()+a.z();
 	    double rcf=(fabs(tx)+fabs(ty)+fabs(tz));
-	    if (good && goodcut>0 && (!octamode || rcf<1.5*dim.x())) {
+	    if (good && goodcut>0 && (!octamode || rcf<1.5*max.x())) {
               if (edge) {
-//                printf("checking %d\n",nsolvbox);
                 for (int ihave=0; ihave<nsolvbox && good; ihave++) {
                   if (solvedge[ihave]) {
                     for (int iwah=solventStart[solvinx[ihave]]; iwah<solventStart[solvinx[ihave]+1] && good; iwah++) {
                       for (int iwan=solventStart[in]; iwan<solventStart[in+1] && good; iwan++) {
                         Vector dww=(solvent[iwan].coordinates()+a)-(solvent[iwah].coordinates()+solvadd[ihave]);
-                        dww.pbc(boxdim);
+                        dww.pbc(dim);
                         double dwwval=dww*dww;
                         if (dwwval<watcutsq) {
                           good=0;
@@ -324,18 +370,7 @@ int main(int argc, char **argv) {
                 solvinx[nsolvbox]=in;
                 solvedge[nsolvbox]=edge;
                 solvadd[nsolvbox++]=a;
-//               printf("%d %d %lf %lf %lf\n",in,edge,
-//                       solvent[solventStart[in]].coordinates().x()+a.x(),
-//                       solvent[solventStart[in]].coordinates().y()+a.y(),
-//                       solvent[solventStart[in]].coordinates().z()+a.z());
               }
-//	      resinx++;
-//	      for (iwa=solventStart[in]; iwa<solventStart[in+1]; iwa++) {
-		//		fprintf(stderr,"adding %d %s %d\n",atominx,solvent[iwa].atomName(),resinx);
-//		PDBEntry t(atominx++,solvent[iwa].atomName(),solvent[iwa].residueName(),
-//			   resinx,solvent[iwa].coordinates()+a);
-//		t.write(stdout);
-//	      }
 	    }
 	  }
 	}

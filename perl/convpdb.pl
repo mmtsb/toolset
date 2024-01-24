@@ -32,6 +32,7 @@ sub usage {
   printf STDERR "         [-fixcoo]\n";
   printf STDERR "         [-ssbond res1:res2[=res1:res2]] [-nossbond]\n";
   printf STDERR "         [-solvate] [-cutoff value] [-solvcut value]\n";
+  printf STDERR "         [-fixbox min:max min:max min:max]\n";
   printf STDERR "         [-octahedron] [-cubic]\n";
   printf STDERR "         [-ions NAME:num[=NAME:num]]\n"; 
   printf STDERR "         [-replace PDB:num]\n";
@@ -88,6 +89,7 @@ my $selseq;
 my $nsel;
 my $solvate;
 my $solvcut=undef;
+my $fixbox=undef;
 my $shape;
 my $tip4p=0;
 #my $box="/apps/mmtsb/data/water.pdb";
@@ -453,6 +455,18 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-solvcut" ) {
     shift @ARGV;
     $solvcut=shift @ARGV;
+  } elsif ($ARGV[0] eq "-fixbox" ) {
+    shift @ARGV;
+    $fixbox={};
+    my @fx=split(/:/,shift @ARGV);
+    my @fy=split(/:/,shift @ARGV);
+    my @fz=split(/:/,shift @ARGV);
+    $fixbox->{xmin}=$fx[0];
+    $fixbox->{xmax}=$fx[1];
+    $fixbox->{ymin}=$fy[0];
+    $fixbox->{ymax}=$fy[1];
+    $fixbox->{zmin}=$fz[0];
+    $fixbox->{zmax}=$fz[1];
   } elsif ($ARGV[0] eq "-info") {
     shift @ARGV;
     $info=1;
@@ -694,7 +708,7 @@ $mol->shiftResNumber($addres)  if (defined $addres);
 $mol->generateSegNames() if (defined $segnames);
 $mol->fixCOO() if ($fixcoo);
 if (defined $solvate && $solvate) {
-  my $err=$mol->solvate($cutoff,$shape,undef,$solvcut,(!$tip4p)?0:1,($center<=0)?0:undef,$splitseg);
+  my $err=$mol->solvate($cutoff,$shape,undef,$solvcut,(!$tip4p)?0:1,($center<=0)?0:undef,$splitseg,$fixbox);
   print STDERR $err;
 }
 

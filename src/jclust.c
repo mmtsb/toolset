@@ -34,7 +34,7 @@ void usage() {
   fprintf(stderr,"usage:   jclust [options] [inputFile]\n");
   fprintf(stderr,"options: [-mode rmsd|phipsi|psi|phi|contact]\n");
   fprintf(stderr,"         [-maxdist value]\n");
-  fprintf(stderr,"         [-centroid] [-ref file]\n");
+  fprintf(stderr,"         [-centroid] [-cdist] [-ref file]\n");
   fprintf(stderr,"         [-pdb | -sicho] [-max value]\n");
   fprintf(stderr,"         [-ca | -cb | -cab | -heavy | -all]\n");
   fprintf(stderr,"         [-l min:max[=min:max=...]]\n");
@@ -217,7 +217,7 @@ void Structure::read(char *fname, InputModeEnum mode,
   if (!access(fname,R_OK)) {
     fptr=fopen(fname,"r");
   } else {
-    char zipfname[1024];
+    char zipfname[512];
     sprintf(zipfname,"%s.gz",fname);
     if (!access(zipfname,R_OK)) {
       char cmd[1024];
@@ -352,9 +352,9 @@ void Structure::lsqFit(Structure& s) {
 }
 
 double Structure::rmsdphi(Structure& s) {
-  register int i;
-  register double d=0.0;
-  register int nd=0;
+  int i;
+  double d=0.0;
+  int nd=0;
 
   //  fprintf(stderr,"nres: %d\n",nres);
   for (i=1; i<nres-1; i++) {
@@ -373,9 +373,9 @@ double Structure::rmsdphi(Structure& s) {
 }
 
 double Structure::rmsdpsi(Structure& s) {
-  register int i;
-  register double d=0.0;
-  register int nd=0;
+  int i;
+  double d=0.0;
+  int nd=0;
 
   for (i=1; i<nres-1; i++) {
     if (dormsd[resLookup[i]]) {
@@ -392,8 +392,8 @@ double Structure::rmsdpsi(Structure& s) {
 }
 
 double Structure::rmsdcoor(Structure& s, int lsqFlag) {
-  register int i;
-  register double d=0.0;
+  int i;
+  double d=0.0;
 
   if (lsqFlag) {
     Structure ns(s);
@@ -686,7 +686,7 @@ int ContactMap::readFile(char *fname, InputModeEnum mode, Vector *crd) {
   if (!access(fname,R_OK)) {
     fptr=fopen(fname,"r");
   } else {
-    char zipfname[1024];
+    char zipfname[512];
     sprintf(zipfname,"%s.gz",fname);
     if (!access(zipfname,R_OK)) {
       char cmd[1024];
@@ -1025,6 +1025,7 @@ int main(int argc, char **argv) {
   *inputFile=0;
 
   int centroid=0;
+  int cdist=0;
 
   char refFile[1024];
   *refFile=0;
@@ -1062,6 +1063,8 @@ int main(int argc, char **argv) {
       inpMode=SICHOMODE;
     } else if (!strcmp(argv[i],"-centroid")) {
       centroid=1;
+    } else if (!strcmp(argv[i],"-cdist")) {
+      cdist=1;
     } else if (!strcmp(argv[i],"-ref")) {
       strcpy(refFile,argv[++i]);
     } else if (!strcmp(argv[i],"-ca")) {
@@ -1283,14 +1286,20 @@ int main(int argc, char **argv) {
     fprintf(stdout,"#Cluster %d\n",i+1);
     for (Link *l=rClust[i]->elementList(); l!=NULL; l=l->next()) {
       int inx;
+      double dist=0.0;
       if (clusterMode==CONTACTMODE) {
 	ContactMap *s=(ContactMap *)l->element();	
 	inx=s->index();
       } else {
 	Structure *s=(Structure *)l->element();
 	inx=s->index();
+        dist=((RMSDCluster *)rClust[i])->centroid().rmsd(*s,clusterMode,lsqfitFlag);
       }
-      fprintf(stdout,"%d %s\n",inx+1,fname[inx]);
+      if (cdist) {
+         fprintf(stdout,"%d %s %lf\n",inx+1,fname[inx],dist);
+      } else {
+         fprintf(stdout,"%d %s\n",inx+1,fname[inx]);
+      }
     }
 
     if (centroid) {
