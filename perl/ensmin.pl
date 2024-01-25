@@ -10,6 +10,7 @@ sub usage {
   printf STDERR "usage:   ensmin.pl [options] intag outtag\n";
   printf STDERR "options: [-par CHARMMparams]\n";
   printf STDERR "         [-opt file[:file]]\n";
+  printf STDERR "         [-custom file[:file]]\n";
   printf STDERR "         [-l refPDB min:max[=min:max ...]]\n";
   printf STDERR "         [-[no]conslim] [-limforce value]\n";
   printf STDERR "         [-limsel=ca|cb|cab|heavy]\n";
@@ -145,6 +146,9 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-saveid") {
     shift @ARGV;
     $saveid=shift @ARGV;
+  } elsif ($ARGV[0] eq "-custom") {
+    shift @ARGV;
+    $paropt{custom}=shift @ARGV;
   } elsif ($ARGV[0] eq "-conslim") {
     shift @ARGV;
     $paropt{conslim}=1;
@@ -441,12 +445,21 @@ sub dojob {
   }
 
   $charmm->setupEnergy();
-  $charmm->shake();
+  $charmm->shake(); 
 
   $charmm->setEnergyLogFile($datadir."/".$ens->{tag}.".elog");
 
   $charmm->setupRestraints(1.0,$cons)
     if ($#{$cons}>=0);
+
+  if (exists $ens->{opt}->{custom} && defined $ens->{opt}->{custom}) {
+     foreach my $c ( split(/:/,$ens->{opt}->{custom})) {
+       if (&GenUtil::checkFile($c)) {
+          my $custom=&GenUtil::readData(&GenUtil::getInputFile($c));
+          $charmm->stream($custom);
+       }
+     }
+  }
 
   if ($charmm->{par}->{sdsteps}>0) {
     $charmm->minimizeSD();
