@@ -915,8 +915,9 @@ if ($naccu>0) {
 	(!defined $tfrom || ($timestep>=$tfrom-0.0000001 && $timestep<=$tto+0.0000001)) &&
 	(!defined $stepsize || ($iframe%$stepsize==0))) {
       if (defined $customfile && &GenUtil::checkFile($customfile)) {
-	my $custom=&GenUtil::readData(&GenUtil::getInputFile($customfile));
-	$charmm->stream($custom);
+	#my $custom=&GenUtil::readData(&GenUtil::getInputFile($customfile));
+	#$charmm->stream($custom);
+        $charmm->streamFile($customfile);
       } elsif ($#analyze>=0) {
 	my @results=();
 	foreach my $a ( @analyze ) {

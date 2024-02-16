@@ -4525,6 +4525,19 @@ sub stream {
   &GenUtil::remove($sfile) unless (defined $self->{handle}->{cmdlog});
 }
 
+## method: streamFile(command)
+## sends multiple command lines from a file to CHARMM. It returns
+## only after the last command is finished
+
+sub streamFile {
+  my $self=shift;
+  my $sfile=shift;
+
+  $self->_sendCommand("open unit 78 read form name \"$sfile\"");
+  $self->_sendCommand("stream unit 78");
+  $self->_getCHARMMOutput("PERLDONE\n  \n");
+}
+
 ## method: writePDB(file)
 ## has CHARMM write out the current coordinates to a file
 ## in PDB format.
