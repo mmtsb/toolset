@@ -105,28 +105,34 @@ int PDBEntry::read(FILE *fptr, SelEnum selMode) {
 }
 
 void PDBEntry::write(FILE *fptr) {
+  char satminx[1024];
+  if (atminx<1000000) {
+    sprintf(satminx,"%6d",atminx);
+  } else {
+    strcpy(satminx,"******");
+  } 
   if (strlen(atmname)>3) {
     if (resnum>99999) {
      fprintf(fptr,
-      "ATOM%7d %-4s%c%-4s%c%6d  %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
-      atminx,atmname,(alt==0)?' ':alt,resname,(chn==0)?' ':chn,resnum,coor.x(),coor.y(),coor.z(),
+      "ATOM %6s %-4s%c%-4s%c%6d  %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
+      satminx,atmname,(alt==0)?' ':alt,resname,(chn==0)?' ':chn,resnum,coor.x(),coor.y(),coor.z(),
       aux1,aux2,segid);
     } else {
      fprintf(fptr,
-      "ATOM%7d %-4s%c%-4s%c%5d   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
-      atminx,atmname,(alt==0)?' ':alt,resname,(chn==0)?' ':chn,resnum,coor.x(),coor.y(),coor.z(),
+      "ATOM %6s %-4s%c%-4s%c%5d   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
+      satminx,atmname,(alt==0)?' ':alt,resname,(chn==0)?' ':chn,resnum,coor.x(),coor.y(),coor.z(),
       aux1,aux2,segid);
     }
   } else {
     if (resnum>99999) {
      fprintf(fptr,
-      "ATOM%7d  %-3s%c%-4s%c%6d  %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
-      atminx,atmname,(alt==0)?' ':alt,resname,(chn==0)?' ':chn,resnum,coor.x(),coor.y(),coor.z(),
+      "ATOM %6s  %-3s%c%-4s%c%6d  %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
+      satminx,atmname,(alt==0)?' ':alt,resname,(chn==0)?' ':chn,resnum,coor.x(),coor.y(),coor.z(),
       aux1,aux2,segid);
     } else {
      fprintf(fptr,
-      "ATOM%7d  %-3s%c%-4s%c%5d   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
-      atminx,atmname,(alt==0)?' ':alt,resname,(chn==0)?' ':chn,resnum,coor.x(),coor.y(),coor.z(),
+      "ATOM %6s  %-3s%c%-4s%c%5d   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
+      satminx,atmname,(alt==0)?' ':alt,resname,(chn==0)?' ':chn,resnum,coor.x(),coor.y(),coor.z(),
       aux1,aux2,segid);
     }
 

@@ -26,8 +26,11 @@ void usage() {
  fprintf(stderr,"         [-solvcut value]\n");
  fprintf(stderr,"         [-[no]center]\n");
  fprintf(stderr,"         [-fixbox xmin xmax ymin ymax zmin zmax]\n");
+ fprintf(stderr,"         [-verbose]\n");
  exit(1);
 }
+
+int verbose=0;
 
 void readPDB(char *pdbName, PDBEntry *pdb, int& natom, int *resStart, int& nres) {
   FILE *fptr;
@@ -120,6 +123,8 @@ int main(int argc, char **argv) {
       boxmaxz=atof(argv[++i]);
       center=0;
       octamode=0;
+    } else if (!strcmp(argv[i],"-verbose")) {
+      verbose=1;
     } else if (!strcmp(argv[i],"-help")) {
       usage();
     } else {
@@ -158,16 +163,19 @@ int main(int argc, char **argv) {
   readPDB(boxfile,solvent,nsolvent,solventStart,nsolventres);
   readPDB(pdbfile,solute,nsolute,soluteStart,nsoluteres);
 
- // fprintf(stderr,"read %d atoms, %d residues from %s\n",
- //	  nsolvent,nsolventres,boxfile);
- // fprintf(stderr,"read %d atoms, %d residues from %s\n",
- //	  nsolute,nsoluteres,pdbfile);
+  if (verbose) {
+    fprintf(stderr,"read %d atoms, %d residues from %s\n",nsolvent,nsolventres,boxfile);
+    fprintf(stderr,"read %d atoms, %d residues from %s\n",nsolute,nsoluteres,pdbfile);
+  }
   
   Vector cofm;
   for (i=0; i<nsolute; i++) {
     cofm+=solute[i].coordinates();
   }
   cofm/=nsolute;
+  if (verbose) {
+    fprintf(stderr,"center of mass: %lf %lf %lf\n",cofm.x(),cofm.y(),cofm.z());
+  }
 
   int atominx=1;
   int resinx=solute[0].residueNumber()-1;
@@ -256,9 +264,11 @@ int main(int argc, char **argv) {
 
   Vector dim=max-min;
 
-//  fprintf(stderr,"min: %lf %lf %lf\n",min.x(),min.y(),min.z());
-//  fprintf(stderr,"max: %lf %lf %lf\n",max.x(),max.y(),max.z());
-//  fprintf(stderr,"dim: %lf %lf %lf\n",dim.x(),dim.y(),dim.z());
+  if (verbose) {
+    fprintf(stderr,"min: %lf %lf %lf\n",min.x(),min.y(),min.z());
+    fprintf(stderr,"max: %lf %lf %lf\n",max.x(),max.y(),max.z());
+    fprintf(stderr,"dim: %lf %lf %lf\n",dim.x(),dim.y(),dim.z());
+  }
 
   int xmult=int(dim.x()/boxwidth)*2;
   int ymult=int(dim.y()/boxwidth)*2;
@@ -370,6 +380,9 @@ int main(int argc, char **argv) {
                 solvinx[nsolvbox]=in;
                 solvedge[nsolvbox]=edge;
                 solvadd[nsolvbox++]=a;
+                if (verbose && nsolvbox%1000==0) { 
+                  fprintf(stderr,"added %d waters\n",nsolvbox);
+                }
               }
 	    }
 	  }

@@ -272,10 +272,10 @@ void Structure::read(char *fname, InputModeEnum mode,
   if (!access(fname,R_OK)) {
     fptr=fopen(fname,"r");
   } else {
-    char zipfname[1024];
+    char zipfname[1200];
     sprintf(zipfname,"%s.gz",fname);
     if (!access(zipfname,R_OK)) {
-      char cmd[1024];
+      char cmd[2048];
       sprintf(cmd,"gunzip -c %s",zipfname);
       fptr=popen(cmd,"r");
       closepipe=1;
@@ -421,9 +421,9 @@ void Structure::lsqFit(Structure& s) {
 }
 
 double Structure::rmsdphi(Structure& s) {
-  register int i;
-  register double d=0.0;
-  register int nd=0;
+  int i;
+  double d=0.0;
+  int nd=0;
 
   //  fprintf(stderr,"nres: %d\n",nres);
   for (i=0; i<nres; i++) {
@@ -438,9 +438,9 @@ double Structure::rmsdphi(Structure& s) {
 }
 
 double Structure::rmsdpsi(Structure& s) {
-  register int i;
-  register double d=0.0;
-  register int nd=0;
+  int i;
+  double d=0.0;
+  int nd=0;
 
   for (i=0; i<nres; i++) {
     if (dormsd[resLookup[i]]) {
@@ -453,9 +453,9 @@ double Structure::rmsdpsi(Structure& s) {
 }
 
 double Structure::rmsdcoor(Structure& s, int lsqFlag) {
-  register int i;
-  register double d=0.0;
-  register int nd=0;
+  int i;
+  double d=0.0;
+  int nd=0;
 
   if (lsqFlag) {
     Structure ns(s);

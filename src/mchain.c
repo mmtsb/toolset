@@ -130,25 +130,25 @@ void genint(IVector *icofm, Vector *scofm, int i) {
 }
 
 int colinear(IVector* icofm, int i, int j, int k) {
-  register int ix=icofm[i].x-icofm[j].x;
-  register int iy=icofm[i].y-icofm[j].y;
-  register int iz=icofm[i].z-icofm[j].z;
+  int ix=icofm[i].x-icofm[j].x;
+  int iy=icofm[i].y-icofm[j].y;
+  int iz=icofm[i].z-icofm[j].z;
 
-  register int jx=icofm[j].x-icofm[k].x;
-  register int jy=icofm[j].y-icofm[k].y;
-  register int jz=icofm[j].z-icofm[k].z;
+  int jx=icofm[j].x-icofm[k].x;
+  int jy=icofm[j].y-icofm[k].y;
+  int jz=icofm[j].z-icofm[k].z;
 
-  register int kx=iy*jz-iz*jy;
-  register int ky=jx*iz-ix*jz;
-  register int kz=ix*jy-iy*jx;
+  int kx=iy*jz-iz*jy;
+  int ky=jx*iz-ix*jz;
+  int kz=ix*jy-iy*jx;
 
   return (kx*kx+ky*ky+kz*kz)==0;
 }
 
 inline int idiff(IVector *icofm, int i, int j) {
-  register int ix=icofm[i].x-icofm[j].x;
-  register int iy=icofm[i].y-icofm[j].y;
-  register int iz=icofm[i].z-icofm[j].z;
+  int ix=icofm[i].x-icofm[j].x;
+  int iy=icofm[i].y-icofm[j].y;
+  int iz=icofm[i].z-icofm[j].z;
   
   return ix*ix+iy*iy+iz*iz;
 }
