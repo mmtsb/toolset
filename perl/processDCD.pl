@@ -222,7 +222,7 @@ my $i;
 $from=1 if ($from<0);  #$nfiles+$from+1 if ($from<0);
 $to=9999999 if ($to<0); # $nfiles+$to+1 if ($to<0);
 
-my $itot=0;
+my $itot=1;
 
 &start($starttag) if (defined &start && defined $ffile);
 
@@ -293,8 +293,6 @@ foreach my $dcd ( @dcdfiles ) {
     }
 
     for ($i=1; $itot<=$to && $i<=$nfiles; $i++) {
-      $itot++;
-    
       my $a=0;
       my $b=0;
       my $c=0; 
@@ -419,6 +417,7 @@ foreach my $dcd ( @dcdfiles ) {
 	  $navg++;
 	}
       }
+      $itot++;
     }
   } elsif ((defined $rmsmode || defined $qscore) && defined $ref) {
     die "can apply rms/qscore command only for PDB files" 
