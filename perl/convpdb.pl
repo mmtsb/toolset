@@ -27,7 +27,7 @@ sub usage {
   printf STDERR "         [-charmm19] [-amber]\n";
   printf STDERR "         [-out charmm19 | charmm22 | amber | generic]\n";
   printf STDERR "         [-genres]\n";
-  printf STDERR "         [-crd] [-crdext] [-crdinp]\n";
+  printf STDERR "         [-crd] [-crdext] [-crdinp] [-cifinp]\n";
   printf STDERR "         [-segnames]\n";
   printf STDERR "         [-fixcoo]\n";
   printf STDERR "         [-ssbond res1:res2[=res1:res2]] [-nossbond]\n";
@@ -45,6 +45,7 @@ sub usage {
   printf STDERR "         [-wrap boxx boxy boxz] [-by chain|atom|system]\n";
   printf STDERR "         [-reimage cx cy cz]\n";
   printf STDERR "         [-xyzcoor file[:xinx:yinx:zinx]]\n";
+  printf STDERR "         [-delimiter char] (not fixed format)\n";
   exit 1;
 }
 
@@ -152,6 +153,7 @@ my $boxz=undef;
 my $scx=undef;
 my $scy=undef;
 my $scz=undef;
+my $delimiter=undef;
 
 my $xyzfile=undef;
 my $xinx=1;
@@ -520,6 +522,9 @@ while ($#ARGV>=0) {
     $crd=1;
     $crdext=1;
     $ignoreseg=0;
+  } elsif ($ARGV[0] eq "-delimiter") {
+    shift @ARGV;
+    $delimiter=shift @ARGV;
   } elsif ($ARGV[0] eq "-cifinp") {
     shift @ARGV;
     $cifinp=1;
@@ -816,7 +821,7 @@ if ($info) {
     if ($crd) {
       $mol->writeCRD("-",translate=>$outmode,extend=>$crdext);
     } else {
-      $mol->writePDB("-",translate=>$outmode,ssbond=>!$nossbond,cleanaux=>$cleanaux,dohetero=>$hetero,genresno=>$genresno);
+      $mol->writePDB("-",translate=>$outmode,ssbond=>!$nossbond,cleanaux=>$cleanaux,dohetero=>$hetero,genresno=>$genresno,delimited=>$delimiter);
     }
   }
 }

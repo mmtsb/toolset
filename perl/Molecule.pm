@@ -1132,7 +1132,7 @@ sub readPSF {
   undef $fname;
 }
 
-## method: writePDB(file[,translate=>format, longaux2=>1, ssbond=>0, cleanaux=>0])
+## method: writePDB(file[,translate=>format, longaux2=>1, ssbond=>0, cleanaux=>0, delimited=>undef])
 ## writes out the current structure in PDB format
 ## the output format may be specified through <mark>translate</mark>.
 ## Possible formats are <mark>CHARMM19</mark>, <mark>CHARMM22</mark>,
@@ -1151,6 +1151,7 @@ sub writePDB {
   my $dohetero=$wpar{dohetero};
   my $genresno=$wpar{genresno};
   my $writeend=$wpar{writeend};
+  my $delimiter=$wpar{delimited};
 
   $dohetero=1 if (!defined $dohetero);
   $translate="" if (!defined $translate);
@@ -1160,7 +1161,7 @@ sub writePDB {
   die "empty molecule, nothing to write"
     if (!defined $self->{chain} || $#{$self->{chain}}<0);
 
-  if (!defined $ssbond || $ssbond) {
+  if ((!defined $ssbond || $ssbond) && !defined $delimiter) {
     my %havess;
     my $sinx=0;
     foreach my $s ( @{$self->{ssbond}}) {
@@ -1390,14 +1391,14 @@ sub writePDB {
 	  $ta->{aux2}=0.0;
 	}
 
-	printf $fname "%s\n",&_pdbLine($ta,($translate=~/CHA/ && !$genresno),$longaux2)
-	  if (($translate !~ /NOH/ || $ta->{atomname}!~/^[0-9]*H.*/) && !(!$dohetero && $ta->{hetero}));
+ 	printf $fname "%s\n",&_pdbLine($ta,($translate=~/CHA/ && !$genresno),$longaux2,$delimiter)
+	   if (($translate !~ /NOH/ || $ta->{atomname}!~/^[0-9]*H.*/) && !(!$dohetero && $ta->{hetero}));
 	$prevres=$ta->{resnum};
       }
-      printf $fname "TER\n";
+      printf $fname "TER\n" if (!defined $delimiter);
     }
   }
-  printf $fname "END\n" if ($writeend);
+  printf $fname "END\n" if ($writeend && !defined $delimiter);
   
   undef $fname;
 }
@@ -4973,10 +4974,25 @@ sub _pdbLine {
   my $pdbrec=shift;
   my $chmode=shift;
   my $longaux2=shift;
+  my $delimiter=shift;
   $chmode=0 if (!defined $chmode);
 
   my $chainid=$pdbrec->{chain};
   $chainid=" " if (!defined $chainid || $chainid eq "" || $chainid eq "+");
+
+  if (defined $delimiter) {
+    my @data=();
+    push(@data,$pdbrec->{atominx});
+    push(@data,$pdbrec->{atomname});
+    push(@data,$pdbrec->{resname});
+    push(@data,$chainid);
+    push(@data,$pdbrec->{resnum});
+    push(@data,$pdbrec->{xcoor});
+    push(@data,$pdbrec->{ycoor});
+    push(@data,$pdbrec->{zcoor});
+    push(@data,$pdbrec->{seg});
+    return join($delimiter,@data);
+  }
 
   my $resnumstr;
   if ($pdbrec->{resnum}>999 && $chmode) {
