@@ -1,12 +1,12 @@
 Thank you for downloading the MMTSB Tool Set.
 
-To install, go to the 'src' directory and type 'make'.
+To install, go to the 'src' directory and type 'make all'.
 
 The Makefile assumes gcc/g++/gfortran and needs to be 
 adjusted if you wnat to use a different compiler.
 
 Set MMTSBDIR to the top MMTSB directory and
-add $MMTSBDIR/perl and $MMSTBDIR/bin to your path.
+add $MMTSBDIR/perl and $MMTSBDIR/bin to your path.
 
 If you have CHARMM available, please also set CHARMMEXEC"
 and CHARMMDATA to the location of the executable and
