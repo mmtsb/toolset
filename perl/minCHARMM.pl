@@ -226,11 +226,6 @@ if ($crdout) {
 } else {
   my $chmoutpdb=lc "pdb$$-out";
   $charmm->writePDB($chmoutpdb);
-  if (!-r $chmoutpdb) {
-     sleep(20);
-  } else {
-     sleep(5);
-  }
   my $outmol=Molecule::new();
   $outmol->readPDB($chmoutpdb,translate=>&CHARMM::getConvType($charmm->{par}->{param}),chainfromseg=>(defined $psffile || $nochainoutput)?0:1,splitseg=>($splitseg)?1:0);
 

@@ -275,13 +275,8 @@ if (defined $crdout) {
 }
 
 if (defined $finalpdb) {
-  my $chmoutpdb="chmout.pdb";
+  my $chmoutpdb="chm$$-out.pdb";
   $charmm->writePDB($chmoutpdb);
-  if (!-r $chmoutpdb) {
-     sleep(20);
-  } else {
-     sleep(3);
-  }
   my $outmol=Molecule::new();
   $outmol->readPDB($chmoutpdb,translate=>&CHARMM::getConvType($charmm->{par}->{param}),chainfromseg=>(defined $psffile || $nochainoutput)?0:1);
   $outmol->setSSBonds($charmm->{molecule}->getSSBonds());
