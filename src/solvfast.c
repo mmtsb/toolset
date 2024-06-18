@@ -293,23 +293,27 @@ int main(int argc, char **argv) {
     int igy=int(d.y()/dxgrid);  
     int igz=int(d.z()/dxgrid);  
     for (ix=igx-1; ix<=igx+1; ix++) {
-      if (periodic && ix<0) ix+=ngridx;
-      if (periodic && ix>=ngridx) ix-=ngridx;
-      if (ix>=0 && ix<ngridx) {
+      int iix=ix;
+      if (periodic && iix<0) iix+=ngridx;
+      if (periodic && iix>=ngridx) iix-=ngridx;
+      if (iix>=0 && iix<ngridx) {
         for (iy=igy-1; iy<=igy+1; iy++) {
-          if (periodic && iy<0) iy+=ngridy;
-          if (periodic && iy>=ngridy) iy-=ngridy;
-          if (iy>=0 && iy<ngridy) {
+          int iiy=iy;
+          if (periodic && iiy<0) iiy+=ngridy;
+          if (periodic && iiy>=ngridy) iiy-=ngridy;
+          if (iiy>=0 && iiy<ngridy) {
             for (iz=igz-1; iz<=igz+1; iz++) {
-              if (periodic && iz<0) iz+=ngridz;
-              if (periodic && iz>=ngridz) iz-=ngridz;
-              if (iz>=0 && iz<ngridz) {
-                int inx=iz*ngridx*ngridy+iy*ngridx+ix;
+              int iiz=iz;
+              if (periodic && iiz<0) iiz+=ngridz;
+              if (periodic && iiz>=ngridz) iiz-=ngridz;
+              if (iiz>=0 && iiz<ngridz) {
+                int inx=iiz*ngridx*ngridy+iiy*ngridx+iix;
                 if (nlookup[inx]<nmax) {
                  lookup[inx+nlookup[inx]*ngridx*ngridy*ngridz]=ip;
                  nlookup[inx]++;
                 } else {
-                 fprintf(stderr,"reached limit %d %d %d\n",ix,iy,iz);
+                 fprintf(stderr,"reached limit %d %d %d\n",iix,iiy,iiz);
+                 exit(1);
                 }
               }
             }
