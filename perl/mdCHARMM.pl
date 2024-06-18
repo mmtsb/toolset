@@ -278,9 +278,9 @@ if (defined $finalpdb) {
   my $chmoutpdb="chmout.pdb";
   $charmm->writePDB($chmoutpdb);
   if (!-r $chmoutpdb) {
-     sleep(20);
+     sleep(30);
   } else {
-     sleep(5);
+     sleep(10);
   }
   my $outmol=Molecule::new();
   $outmol->readPDB($chmoutpdb,translate=>&CHARMM::getConvType($charmm->{par}->{param}),chainfromseg=>(defined $psffile || $nochainoutput)?0:1);
