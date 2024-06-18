@@ -19,6 +19,8 @@
 #include "pdb.h"
 #include "field.h"
 
+#define ANINT(n) (n>=0?floor(n+0.5):-floor(0.5-n)) 
+
 void usage() {
  fprintf(stderr,"usage:   solvate [options] PDBfile\n");
  fprintf(stderr,"options: [-box PDBfile] [-boxwidth value]\n");
@@ -27,6 +29,7 @@ void usage() {
  fprintf(stderr,"         [-ioncut value]\n");
  fprintf(stderr,"         [-ions NAME:num[=NAME:num]]\n");
  fprintf(stderr,"         [-fixbox xmin xmax ymin ymax zmin zmax]\n");
+ fprintf(stderr,"         [-periodic]\n");
  fprintf(stderr,"         [-tip3p]\n");
  fprintf(stderr,"         [-verbose]\n");
  exit(1);
@@ -86,6 +89,8 @@ int main(int argc, char **argv) {
   char tip3pname[12];
   strcpy(tip3pname,"TIP3");
 
+  int periodic=0;
+
   strcpy(boxfile,"water.pdb");
   if (argc<2) {
     usage();
@@ -135,6 +140,8 @@ int main(int argc, char **argv) {
       }
     } else if (!strcmp(argv[i],"-verbose")) {
       verbose=1;
+    } else if (!strcmp(argv[i],"-periodic")) {
+      periodic=1;
     } else if (!strcmp(argv[i],"-help")) {
       usage();
     } else {
@@ -276,15 +283,26 @@ int main(int argc, char **argv) {
     nlookup[i]=0;
   }
   for (ip=0; ip<nsolute; ip++) {
-    Vector d=solute[ip].coordinates()-min;
+    Vector xyz=solute[ip].coordinates();
+    if (periodic) {
+      xyz-=Vector(ANINT(xyz.x()/dim.x())*dim.x(),ANINT(xyz.y()/dim.y())*dim.y(),ANINT(xyz.z()/dim.z())*dim.z());
+    }
+//    Vector d=solute[ip].coordinates()-min;
+    Vector d=xyz-min;
     int igx=int(d.x()/dxgrid);  
     int igy=int(d.y()/dxgrid);  
     int igz=int(d.z()/dxgrid);  
     for (ix=igx-1; ix<=igx+1; ix++) {
+      if (periodic && ix<0) ix+=ngridx;
+      if (periodic && ix>=ngridx) ix-=ngridx;
       if (ix>=0 && ix<ngridx) {
         for (iy=igy-1; iy<=igy+1; iy++) {
+          if (periodic && iy<0) iy+=ngridy;
+          if (periodic && iy>=ngridy) iy-=ngridy;
           if (iy>=0 && iy<ngridy) {
             for (iz=igz-1; iz<=igz+1; iz++) {
+              if (periodic && iz<0) iz+=ngridz;
+              if (periodic && iz>=ngridz) iz-=ngridz;
               if (iz>=0 && iz<ngridz) {
                 int inx=iz*ngridx*ngridy+iy*ngridx+ix;
                 if (nlookup[inx]<nmax) {
@@ -340,6 +358,9 @@ int main(int argc, char **argv) {
   	        for (ip=0; ip<nlookup[inx] && good; ip++) {
                   Vector svec=solute[lookup[inx+ip*ngridx*ngridy*ngridz]].coordinates();
 	          Vector d=cc-svec;
+                  if (periodic) {
+                     d-=Vector(ANINT(d.x()/dim.x())*dim.x(),ANINT(d.y()/dim.y())*dim.y(),ANINT(d.z()/dim.z())*dim.z());
+                  }
 	  	  double dval=d*d;
 		  if (dval<solvcutsq) {
 		    good=0;
