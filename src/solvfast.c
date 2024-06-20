@@ -447,7 +447,6 @@ int main(int argc, char **argv) {
           nseg++;
         }
       }
-      printf("TER\n");
       nseg++; 
     }
   }

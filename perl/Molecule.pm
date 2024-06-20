@@ -2341,6 +2341,53 @@ sub setValidSegment {
 }
 
 
+## method: cutoutByCoordinates(xmin,xmax,ymin,ymax,zmin,zmax,cutby)
+## removes particles that are outside the given coordinate frame
+## cutby should be one of: 'atom', 'residue', 'chain'
+sub cutoutByCoordinates {
+  my $self=shift;
+  my $xmin=shift;
+  my $xmax=shift;
+  my $ymin=shift;
+  my $ymax=shift;
+  my $zmin=shift;
+  my $zmax=shift;
+  my $cutby=shift;
+  $cutby="residue" if (!defined $cutby);
+
+  foreach my $c ( @{$self->{chain}} ) {
+    my $ccut=0;
+    my $atom=$c->{atom};
+    foreach my $r ( @{$c->{res}} ) {    
+      my $rcut=0;
+      for (my $ia=$r->{start}; $ia<=$r->{end}; $ia++) {
+        my $ai=$atom->[$ia];
+        if ($ai->{xcoor}<$xmin || $ai->{xcoor}>$xmax || 
+            $ai->{ycoor}<$ymin || $ai->{ycoor}>$ymax ||
+            $ai->{zcoor}<$zmin || $ai->{zcoor}>$zmax) {
+          $ai->{valid}=0;
+          $rcut=1;
+          $ccut=1;
+        }	
+      }
+      if ($rcut && ($cutby eq "residue" || $cutby eq "chain")) {
+        $r->{valid}=0;
+        for (my $ia=$r->{start}; $ia<=$r->{end}; $ia++) {
+          $atom->[$ia]->{valid}=0; 
+        }
+      }
+    }
+    if ($ccut && $cutby eq "chain") {
+      foreach my $r ( @{$self->{res}} ) {    
+        for (my $ia=$r->{start}; $ia<=$r->{end}; $ia++) {
+          $atom->[$ia]->{valid}=0;
+        }
+        $r->{valid}=0;
+      }
+    }
+  }
+}
+
 ## method: markClashes() 
 ## finds and marks atom-atom clashes
 

@@ -4,6 +4,7 @@
 #
 # http://mmtsb.scripps.edu/doc/convpdb.pl.html
 # 2000, Michael Feig, Brooks group, TSRI
+# 2003-2024, Michael Feig, Michigan State University
 
 sub usage {
   printf STDERR "usage:   convpdb.pl [options] [PDBfile]\n";
@@ -46,6 +47,9 @@ sub usage {
   printf STDERR "         [-reimage cx cy cz]\n";
   printf STDERR "         [-xyzcoor file[:xinx:yinx:zinx]]\n";
   printf STDERR "         [-delimiter char] (not fixed format)\n";
+  printf STDERR "         [-cutout xmin:xmax ymin:ymax zmin:zmax]\n";
+  printf STDERR "         [-cutx xmin:xmax] [-cuty ymin:ymax] [-cutz zmin:zmax]\n";
+  printf STDERR "         [-cutby atom|residue|chain]\n";
   exit 1;
 }
 
@@ -154,6 +158,15 @@ my $scx=undef;
 my $scy=undef;
 my $scz=undef;
 my $delimiter=undef;
+
+my $cutout=undef;
+my $cutby="residue";
+my $cutxmin=-999999;
+my $cutxmax=999999;
+my $cutymin=-999999;
+my $cutymax=999999;
+my $cutzmin=-999999;
+my $cutzmax=999999;
 
 my $xyzfile=undef;
 my $xinx=1;
@@ -528,6 +541,39 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-cifinp") {
     shift @ARGV;
     $cifinp=1;
+  } elsif ($ARGV[0] eq "-cutout") {
+    shift @ARGV;
+    $cutout=1;
+    my @cf=split(/:/,shift @ARGV);
+    $cutxmin=$cf[0];
+    $cutxmax=$cf[1];
+    @cf=split(/:/,shift @ARGV);
+    $cutymin=$cf[0];
+    $cutymax=$cf[1];
+    @cf=split(/:/,shift @ARGV);
+    $cutzmin=$cf[0];
+    $cutzmax=$cf[1];
+  } elsif ($ARGV[0] eq "-cutx") {
+    shift @ARGV;
+    $cutout=1;
+    my @cf=split(/:/,shift @ARGV);
+    $cutxmin=$cf[0];
+    $cutxmax=$cf[1];
+  } elsif ($ARGV[0] eq "-cuty") {
+    shift @ARGV;
+    $cutout=1;
+    my @cf=split(/:/,shift @ARGV);
+    $cutymin=$cf[0];
+    $cutymax=$cf[1];
+  } elsif ($ARGV[0] eq "-cutz") {
+    shift @ARGV;
+    $cutout=1;
+    my @cf=split(/:/,shift @ARGV);
+    $cutzmin=$cf[0];
+    $cutzmax=$cf[1];
+  } elsif ($ARGV[0] eq "-cutby") {
+    shift @ARGV;
+    $cutby=shift @ARGV;
   } else {
     $fname = shift @ARGV;
   }
@@ -659,7 +705,11 @@ if (defined $nsel) {
   }
 }
 
-$mol=$mol->clone(1) if ((defined $sellist || defined $excllist || !$hetero || defined $selseq || defined $chain || defined $nsel) && !defined $setaux1 && !defined $setaux2);
+if (defined $cutout) {
+  $mol->cutoutByCoordinates($cutxmin,$cutxmax,$cutymin,$cutymax,$cutzmin,$cutzmax,$cutby);
+}
+
+$mol=$mol->clone(1) if ((defined $sellist || defined $excllist || !$hetero || defined $selseq || defined $chain || defined $nsel || defined $cutout) && !defined $setaux1 && !defined $setaux2);
 
 $mol->setChain($setchain,$setall) if (defined $setchain);
 $mol->setSegment($setseg,$setall) if (defined $setseg);
