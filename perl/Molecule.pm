@@ -3179,8 +3179,9 @@ sub centerOfMass {
 
 ## method: wrap(by,boxx,boxy,boxz)
 ## wraps the current structure with respect to the origin
-## by: atom, 
-##     chain (based on center of mass for each system), 
+## by: atom 
+##     chain (based on center of mass for each system) 
+##     residue (based on center of mass for each residue)
 ##     system (entire system)
 ##     reimage (needs scx,scy,scz)
 
@@ -3211,7 +3212,7 @@ sub wrap {
     foreach my $c ( @{$self->{chain}} ) {
       my ($cx,$cy,$cz)=(0.0,0.0,0.0);
       my $atom=$c->{atom};
-      my $n+=$#{$atom}+1;
+      my $n=$#{$atom}+1;
     
       for (my $i=0; $i<=$#{$atom}; $i++) {
         $cx+=$atom->[$i]->{xcoor};
@@ -3232,6 +3233,35 @@ sub wrap {
         $atom->[$i]->{xcoor}+=$dx-$cx;
         $atom->[$i]->{ycoor}+=$dy-$cy;
         $atom->[$i]->{zcoor}+=$dz-$cz;
+      }
+    } 
+  } elsif ($by eq "residue") {
+    foreach my $c ( @{$self->{chain}} ) {
+      my $atom=$c->{atom};
+      foreach my $r ( @{$c->{res}} ) {
+        my ($cx,$cy,$cz)=(0.0,0.0,0.0);
+        my $n=$r->{end}-$r->{start}+1;
+    
+        for (my $i=$r->{start}; $i<=$r->{end}; $i++) {
+          $cx+=$atom->[$i]->{xcoor};
+          $cy+=$atom->[$i]->{ycoor};
+          $cz+=$atom->[$i]->{zcoor};
+        }
+        $cx/=$n;
+        $cy/=$n;
+        $cz/=$n;
+
+        my $dx=$cx;
+        my $dy=$cy;
+        my $dz=$cz;
+        $dx-=$boxx*&GenUtil::nint($dx/$boxx); 
+        $dy-=$boxy*&GenUtil::nint($dy/$boxy); 
+        $dz-=$boxz*&GenUtil::nint($dz/$boxz); 
+        for (my $i=$r->{start}; $i<=$r->{end}; $i++) {
+          $atom->[$i]->{xcoor}+=$dx-$cx;
+          $atom->[$i]->{ycoor}+=$dy-$cy;
+          $atom->[$i]->{zcoor}+=$dz-$cz;
+        }
       }
     } 
   } elsif ($by eq "atom") {

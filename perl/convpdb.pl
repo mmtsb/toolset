@@ -43,7 +43,7 @@ sub usage {
   printf STDERR "         [-cleanaux]\n";
   printf STDERR "         [-setaux1 value] [-setaux2 value]\n";
   printf STDERR "         [-removeclashes] [-clashes] [-clashcut value]\n";
-  printf STDERR "         [-wrap boxx boxy boxz] [-by chain|atom|system]\n";
+  printf STDERR "         [-wrap boxx boxy boxz] [-by chain|atom|residue|system]\n";
   printf STDERR "         [-reimage cx cy cz]\n";
   printf STDERR "         [-xyzcoor file[:xinx:yinx:zinx]]\n";
   printf STDERR "         [-delimiter char] (not fixed format)\n";
