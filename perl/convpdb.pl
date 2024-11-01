@@ -150,13 +150,13 @@ my $alternate=undef;
 my $clashcut=undef;
 my $setaux1=undef;
 my $setaux2=undef;
-my $wrapby=undef;
+my $wrapby="chain";
 my $boxx=undef;
 my $boxy=undef;
 my $boxz=undef;
-my $scx=undef;
-my $scy=undef;
-my $scz=undef;
+my $scx=0.0;
+my $scy=0.0;
+my $scz=0.0;
 my $delimiter=undef;
 
 my $cutout=undef;
@@ -229,7 +229,6 @@ while ($#ARGV>=0) {
     $scx=0.0+shift @ARGV; 
     $scy=0.0+shift @ARGV; 
     $scz=0.0+shift @ARGV; 
-    $wrapby="reimage";
   } elsif ($ARGV[0] eq "-nmode") {
     shift @ARGV;
     $nmodefile=shift @ARGV;

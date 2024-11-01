@@ -3198,16 +3198,20 @@ sub wrap {
   $boxx=10 if (!defined $boxx || $boxx<=0.001);
   $boxy=10 if (!defined $boxy || $boxy<=0.001);
   $boxz=10 if (!defined $boxz || $boxz<=0.001);
+
+  $scx=0 if (!defined $scx);
+  $scy=0 if (!defined $scy);
+  $scz=0 if (!defined $scz);
   
   if ($by eq "system") {
     my ($cx,$cy,$cz)=$self->centerOfMass();
-    my $dx=$cx;
-    my $dy=$cy;
-    my $dz=$cz;
-    $dx-=$boxx*&GenUtil::nint($dx/$boxx); 
-    $dy-=$boxy*&GenUtil::nint($dy/$boxy); 
-    $dz-=$boxz*&GenUtil::nint($dz/$boxz); 
-    $self->move($dx-$cx,$dy-$cy,$dz-$cz); 
+    my $dx=($scx-$cx);
+    my $dy=($scy-$cy);
+    my $dz=($scz-$cz);
+    $dx=$boxx*&GenUtil::nint($dx/$boxx); 
+    $dy=$boxy*&GenUtil::nint($dy/$boxy); 
+    $dz=$boxz*&GenUtil::nint($dz/$boxz); 
+    $self->move($dx,$dy,$dz); 
   } elsif ($by eq "chain") {
     foreach my $c ( @{$self->{chain}} ) {
       my ($cx,$cy,$cz)=(0.0,0.0,0.0);
@@ -3223,16 +3227,16 @@ sub wrap {
       $cy/=$n;
       $cz/=$n;
 
-      my $dx=$cx;
-      my $dy=$cy;
-      my $dz=$cz;
-      $dx-=$boxx*&GenUtil::nint($dx/$boxx); 
-      $dy-=$boxy*&GenUtil::nint($dy/$boxy); 
-      $dz-=$boxz*&GenUtil::nint($dz/$boxz); 
+      my $dx=($scx-$cx);
+      my $dy=($scy-$cy);
+      my $dz=($scz-$cz);
+      $dx=$boxx*&GenUtil::nint($dx/$boxx); 
+      $dy=$boxy*&GenUtil::nint($dy/$boxy); 
+      $dz=$boxz*&GenUtil::nint($dz/$boxz); 
       for (my $i=0; $i<=$#{$atom}; $i++) {
-        $atom->[$i]->{xcoor}+=$dx-$cx;
-        $atom->[$i]->{ycoor}+=$dy-$cy;
-        $atom->[$i]->{zcoor}+=$dz-$cz;
+        $atom->[$i]->{xcoor}+=$dx;
+        $atom->[$i]->{ycoor}+=$dy;
+        $atom->[$i]->{zcoor}+=$dz;
       }
     } 
   } elsif ($by eq "residue") {
@@ -3251,38 +3255,20 @@ sub wrap {
         $cy/=$n;
         $cz/=$n;
 
-        my $dx=$cx;
-        my $dy=$cy;
-        my $dz=$cz;
-        $dx-=$boxx*&GenUtil::nint($dx/$boxx); 
-        $dy-=$boxy*&GenUtil::nint($dy/$boxy); 
-        $dz-=$boxz*&GenUtil::nint($dz/$boxz); 
+        my $dx=($scx-$cx);
+        my $dy=($scy-$cy);
+        my $dz=($scz-$cz);
+        $dx=$boxx*&GenUtil::nint($dx/$boxx); 
+        $dy=$boxy*&GenUtil::nint($dy/$boxy); 
+        $dz=$boxz*&GenUtil::nint($dz/$boxz); 
         for (my $i=$r->{start}; $i<=$r->{end}; $i++) {
-          $atom->[$i]->{xcoor}+=$dx-$cx;
-          $atom->[$i]->{ycoor}+=$dy-$cy;
-          $atom->[$i]->{zcoor}+=$dz-$cz;
+          $atom->[$i]->{xcoor}+=$dx;
+          $atom->[$i]->{ycoor}+=$dy;
+          $atom->[$i]->{zcoor}+=$dz;
         }
       }
     } 
   } elsif ($by eq "atom") {
-    foreach my $c ( @{$self->{chain}} ) {
-      my $atom=$c->{atom};
-      for (my $i=0; $i<=$#{$atom}; $i++) {
-        my $cx=$atom->[$i]->{xcoor};
-        my $cy=$atom->[$i]->{ycoor};
-        my $cz=$atom->[$i]->{zcoor};
-        my $dx=$cx;
-        my $dy=$cy;
-        my $dz=$cz;
-        $dx-=$boxx*&GenUtil::nint($dx/$boxx); 
-        $dy-=$boxy*&GenUtil::nint($dy/$boxy); 
-        $dz-=$boxz*&GenUtil::nint($dz/$boxz); 
-        $atom->[$i]->{xcoor}+=$dx-$cx;
-        $atom->[$i]->{ycoor}+=$dy-$cy;
-        $atom->[$i]->{zcoor}+=$dz-$cz;
-      }
-    }
-  } elsif ($by eq "reimage") {
     foreach my $c ( @{$self->{chain}} ) {
       my $atom=$c->{atom};
       for (my $i=0; $i<=$#{$atom}; $i++) {
