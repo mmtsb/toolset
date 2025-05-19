@@ -104,7 +104,7 @@ sub new {
     die "open2 for $exec failed";
 
   printf $o2write "* title\n*\n\n";
-  printf $o2write "dimension chsize %d\n",500000 unless ($exec=~/chsize/);
+  printf $o2write "dimension chsize %d\n",1200000 unless ($exec=~/chsize/);
   printf $o2write "UNBUFIO\n";
 
   $self->{handle}->{fromcharmm}=$o2read;

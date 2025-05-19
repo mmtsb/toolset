@@ -4588,6 +4588,7 @@ sub replaceWaterWithMolecule {
   }
 
   for (my $ii=0; $ii<$rnum; $ii++) {
+    printf STDERR "replacing %d/%d\n",$ii+1,$rnum;
     my $iw;
     my $rw;
     my $wx;
@@ -7307,6 +7308,58 @@ sub parseSelection {
   }
 
   return $sel;
+}
+
+sub selectWater {
+  my $self=shift;
+  my $sel=shift;
+  my $dist=shift;
+  
+  $self->setValidSelection($sel);
+  my $refatoms=();
+  foreach my $c ( @{$self->{chain}} ) {
+    foreach my $a (@{$c->{atom}}) {
+       if ($a->{valid}) {
+         push(@{$refatoms},$a);
+       }
+    } 
+  }
+  
+#  printf STDERR "found %d reference atoms\n",$#{$refatoms}+1;
+  
+  $self->resetValidResidues(0,1); 
+
+  foreach my $c ( @{$self->{chain}} ) {
+    my $alist=$c->{atom};
+    foreach my $r (@{$c->{res}}) { 
+      if ($r->{name} eq "TIP3") {
+        my $x=$alist->[$r->{start}]->{xcoor};
+        my $y=$alist->[$r->{start}]->{ycoor};
+        my $z=$alist->[$r->{start}]->{zcoor};
+
+
+        my $mindist=999999.0;
+        foreach my $a ( @{$refatoms} ) { 
+          my $dx=$x-$a->{xcoor};
+          my $dy=$y-$a->{ycoor};
+          my $dz=$z-$a->{zcoor};
+          my $d=$dx*$dx+$dy*$dy+$dz*$dz;
+          if ($d<$mindist) {
+            $mindist=$d;
+          }
+        }
+
+#        printf STDERR "water %d %d:%d %lf %lf %lf : %lf\n",$r->{num},$r->{start},$r->{end},$x,$y,$z,sqrt($mindist);
+
+        if ($mindist<$dist*$dist) {
+          $r->{valid}=1;
+          for (my $ia=$r->{start}; $ia<=$r->{end}; $ia++) {
+             $alist->[$ia]->{valid}=1;
+          }
+        }
+      }
+    }
+  }
 }
 
 ## method: setValidSelection(selection)

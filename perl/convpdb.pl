@@ -19,6 +19,7 @@ sub usage {
   printf STDERR "         [-chain id] [-model num] [-firstmodel] [-nohetero]\n";
   printf STDERR "         [-selseq abbrev]\n";
   printf STDERR "         [-nsel Selection]\n";
+  printf STDERR "         [-selwater refSelection distance]\n"; 
   printf STDERR "         [-merge pdbfile]\n";
   printf STDERR "         [-renumber start] [-addres value]\n";
   printf STDERR "         [-renumwatersegs]\n";
@@ -92,6 +93,8 @@ my $selmodel=undef;
 my $firstmodel=0;
 my $selseq;
 my $nsel;
+my $selwater;
+my $selwaterdist;
 my $solvate;
 my $solvcut=undef;
 my $fixbox=undef;
@@ -117,8 +120,7 @@ my $m31=0;
 my $m32=0;
 my $m33=1.0;
 my $ions=();
-my $replacepdb;
-my $replacenum;
+my $replace=();
 my $info=0;
 my $listseg=0;
 my $residues=0;
@@ -253,7 +255,11 @@ while ($#ARGV>=0) {
     }
   } elsif ($ARGV[0] eq "-replace") {
     shift @ARGV;
-    ($replacepdb,$replacenum)=split(/:/,shift @ARGV);
+    foreach my $in ( split(/=/,shift @ARGV) ) {
+      my $trec={};
+      ($trec->{pdb},$trec->{num})=split(/:/,$in);
+      push(@{$replace},$trec);
+    }
   } elsif ($ARGV[0] eq "-ssbond") {
     shift @ARGV;
     foreach my $s (split(/=/,shift @ARGV)) {
@@ -423,6 +429,10 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-nsel") {
     shift @ARGV;
     $nsel=shift @ARGV;
+  } elsif ($ARGV[0] eq "-selwater") {
+    shift @ARGV;
+    $selwater=shift @ARGV;
+    $selwaterdist=shift @ARGV;
   } elsif ($ARGV[0] eq "-exclude") {
     shift @ARGV;
     $excllist=&GenUtil::fragListFromOption(shift @ARGV);
@@ -704,11 +714,15 @@ if (defined $nsel) {
   }
 }
 
+if (defined $selwater) {
+  $mol->selectWater($selwater,$selwaterdist);
+}
+
 if (defined $cutout) {
   $mol->cutoutByCoordinates($cutxmin,$cutxmax,$cutymin,$cutymax,$cutzmin,$cutzmax,$cutby);
 }
 
-$mol=$mol->clone(1) if ((defined $sellist || defined $excllist || !$hetero || defined $selseq || defined $chain || defined $nsel || defined $cutout) && !defined $setaux1 && !defined $setaux2);
+$mol=$mol->clone(1) if ((defined $sellist || defined $excllist || !$hetero || defined $selseq || defined $chain || defined $nsel || defined $selwater || defined $cutout) && !defined $setaux1 && !defined $setaux2);
 
 $mol->setChain($setchain,$setall) if (defined $setchain);
 $mol->setSegment($setseg,$setall) if (defined $setseg);
@@ -771,21 +785,25 @@ if ($#{$ions}>=0) {
   $mol=$mol->clone(1);
 }
 
-if (defined $replacepdb && -r $replacepdb && $replacenum>0) {
-  my $rmol=Molecule::new();
-  $rmol->readPDB($replacepdb);
-  $rmol->center();
-  if ($#{$rmol->{chain}}>0) {
-    printf STDERR "molecule in %s has multiple chains\n",$replacepdb;
-  } elsif ($#{$rmol->{chain}->[0]->{res}}>0) {
-    printf STDERR "molecule in %s has multiple residues\n",$replacepdb;
-  } else {
-    my $rgyr=&Analyze::radiusOfGyration($rmol);
-    if ($rgyr>5) {
-       printf STDERR "molecule in %s is too large\n",$replacepdb;
-    } else {
-       $mol->replaceWaterWithMolecule($rmol,$rgyr*2.5,$replacenum);
-       $mol=$mol->clone(1);
+if ($#{$replace}>=0) {
+  foreach my $r ( @{$replace} ) { 
+    if (defined $r->{pdb} && -r $r->{pdb} && $r->{num}>0) {
+      my $rmol=Molecule::new();
+      $rmol->readPDB($r->{pdb});
+      $rmol->center();
+      if ($#{$rmol->{chain}}>0) {
+        printf STDERR "molecule in %s has multiple chains\n",$r->{pdb};
+      } elsif ($#{$rmol->{chain}->[0]->{res}}>0) {
+        printf STDERR "molecule in %s has multiple residues\n",$r->{pdb};
+      } else {
+        my $rgyr=&Analyze::radiusOfGyration($rmol);
+        if ($rgyr>5) {
+          printf STDERR "molecule in %s is too large\n",$r->{pdb};
+        } else {
+          $mol->replaceWaterWithMolecule($rmol,$rgyr*2.5,$r->{num});
+          $mol=$mol->clone(1);
+        }
+      }
     }
   }
 }
