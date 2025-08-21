@@ -4,7 +4,7 @@
 #
 # http://mmtsb.scripps.edu/doc/convpdb.pl.html
 # 2000, Michael Feig, Brooks group, TSRI
-# 2003-2024, Michael Feig, Michigan State University
+# 2003-2025, Michael Feig, Michigan State University
 
 sub usage {
   printf STDERR "usage:   convpdb.pl [options] [PDBfile]\n";
@@ -34,6 +34,7 @@ sub usage {
   printf STDERR "         [-fixcoo]\n";
   printf STDERR "         [-ssbond res1:res2[=res1:res2]] [-nossbond]\n";
   printf STDERR "         [-solvate] [-cutoff value] [-solvcut value]\n";
+  printf STDERR "         [-3to4water]\n";
   printf STDERR "         [-fixbox min:max min:max min:max]\n";
   printf STDERR "         [-octahedron] [-cubic]\n";
   printf STDERR "         [-ions NAME:num[=NAME:num]]\n"; 
@@ -100,6 +101,7 @@ my $solvcut=undef;
 my $fixbox=undef;
 my $shape;
 my $tip4p=0;
+my $threetofour=0;
 #my $box="/apps/mmtsb/data/water.pdb";
 #my $boxwidth=undef;
 my $cutoff=9.0;
@@ -461,6 +463,9 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-tip4p") {
     shift @ARGV;
     $tip4p=1;
+  } elsif ($ARGV[0] eq "-3to4water") {
+    shift @ARGV;
+    $threetofour=1;
 #  } elsif ($ARGV[0] eq "-box" ) {
 #    shift @ARGV;
 #    $box=shift @ARGV;
@@ -809,6 +814,8 @@ if ($#{$replace}>=0) {
 }
 
 $mol->renumberWaterSegments() if ($renumwatersegs);
+
+$mol->threeToFourWater() if ($threetofour);
 
 if (defined $diffpdbfile) { #note that subtrahend is given as argument before minuend
     my $cmp=&Molecule::new();

@@ -3003,6 +3003,93 @@ sub renumber {
   return $map;
 }
 
+## method: threeToFourWater()
+## convert three site water into four site water
+
+sub threeToFourWater {
+  my $self=shift;
+
+  foreach my $c ( @{$self->{chain}} ) {
+     my $atom=$c->{atom};
+     my $res=$c->{res};
+     my $cntwat=0;
+     foreach my $r ( @{$res} ) {
+       if (($r->{name} eq "TIP3" || $r->{name} eq "HOH") && $r->{end}-$r->{start}==2) {
+         $cntwat++;
+       }
+     }
+     if ($cntwat>0) {
+       my $newatom=();
+       my $newres=();
+
+       foreach my $r (@{$res}) {
+	 my $rrec={};
+	 %{$rrec}=%{$r};
+	 $rrec->{start}=$#{$newatom}+1;
+	 for (my $ia=$r->{start}; $ia<=$r->{end}; $ia++) {
+   	   my $arec={};
+	   %{$arec}=%{$atom->[$ia]};
+	   push(@{$newatom},$arec);
+         }
+         if (($r->{name} eq "TIP3" || $r->{name} eq "HOH") && $r->{end}-$r->{start}==2) {
+           my $o=$atom->[$r->{end}-2];
+           my $h1=$atom->[$r->{end}-1];
+           my $h2=$atom->[$r->{end}];
+
+           my $arec={};
+           %{$arec}=%{$atom->[$r->{end}]};
+
+           my $u1x=$h1->{xcoor}-$o->{xcoor};
+           my $u1y=$h1->{ycoor}-$o->{ycoor};
+           my $u1z=$h1->{zcoor}-$o->{zcoor};
+           my $u1n=sqrt($u1x*$u1x+$u1y*$u1y+$u1z*$u1z);
+           $u1x/=$u1n;
+           $u1y/=$u1n;
+           $u1z/=$u1n;
+  
+           my $u2x=$h2->{xcoor}-$o->{xcoor};
+           my $u2y=$h2->{ycoor}-$o->{ycoor};
+           my $u2z=$h2->{zcoor}-$o->{zcoor};
+           my $u2n=sqrt($u2x*$u2x+$u2y*$u2y+$u2z*$u2z);
+           $u2x/=$u2n;
+           $u2y/=$u2n;
+           $u2z/=$u2n;
+
+           my $bx=$u1x+$u2x;
+           my $by=$u1y+$u2y;
+           my $bz=$u1z+$u2z;
+           my $bn=sqrt($bx*$bx+$by*$by+$bz*$bz);
+           $bx/=$bn;
+           $by/=$bn;
+           $bz/=$bn;
+
+           $arec->{xcoor}=$o->{xcoor}+0.15*$bx;
+           $arec->{ycoor}=$o->{ycoor}+0.15*$by;
+           $arec->{zcoor}=$o->{zcoor}+0.15*$bz;
+
+           $arec->{atomname}="M";
+
+           if ($r->{name} eq "TIP3") {
+             $rrec->{name}="TIP4";
+             $newatom->[$#{$newatom}-2]->{resname}="TIP4";
+             $newatom->[$#{$newatom}-1]->{resname}="TIP4";
+             $newatom->[$#{$newatom}]->{resname}="TIP4";
+             $arec->{resname}="TIP4";
+           }
+           push(@{$newatom},$arec);
+         }
+         if ($#{$newatom}>=$rrec->{start}) {
+  	   $rrec->{end}=$#{$newatom};
+	   push(@{$newres},$rrec);
+         }
+       }
+       $c->{atom}=$newatom;
+       $c->{res}=$newres;
+     }
+  }
+  $self->_coorCache();
+}
+
 ## method: renumberWaterSegments()
 ## renumber water segments to range from 1-10000 and avoid overflow
 ## water segments are identifed by WT* labels
