@@ -112,6 +112,7 @@ sub readPDB {
   my $translate=(defined $par{translate})?$par{translate}:"";
   my $ignoreseg=(defined $par{ignoreseg} && $par{ignoreseg})?1:0;
   my $chainfromseg=(defined $par{chainfromseg} && $par{chainfromseg})?1:0;
+  my $usesegwithchain=(defined $par{useseg} && $par{useseg})?1:0;
   my $activemodel;
 
   my $firstmodelonly=(defined $par{firstmodel} && $par{firstmodel})?1:0;
@@ -121,6 +122,11 @@ sub readPDB {
 
   my $lastchain=".";
   my $chainrec;
+
+  if ($usesegwithchain) {
+     $ignoreseg=0;
+     $splitseg=1;
+  }
 
   $self->{chain}=();
   $self->{chainlookup}={};
@@ -484,8 +490,9 @@ sub readPDB {
 	  }
 
 	  if ($chain ne $lastchain || ($seg ne $lastseg && $splitseg)) {
-            my $crec=$self->{chainlookup}->{$chain};
-	    $chainrec=(defined $crec)?$crec:$self->_newChain($chain);
+            my $ctag=$usesegwithchain?sprintf("%s:%s",$chain,$seg):$chain;
+            my $crec=$self->{chainlookup}->{$ctag};
+	    $chainrec=(defined $crec)?$crec:$self->_newChain($ctag);
 	    $newchain=1;
             $addrnum=0;
 	  } else {
@@ -510,7 +517,7 @@ sub readPDB {
 	  $pdbrec->{resnum}=$iresnum;
           $pdbrec->{aresnum}=$resnum if ($readalternate);
 
-	  $pdbrec->{chain}=$chainrec->{id};
+	  $pdbrec->{chain}=$chainrec->{chain};
 	  $pdbrec->{xcoor}=substr($_,30,8)+0.0;
 	  $pdbrec->{ycoor}=substr($_,38,8)+0.0;
 	  $pdbrec->{zcoor}=substr($_,46,8)+0.0;
@@ -532,7 +539,7 @@ sub readPDB {
 	    $resrec->{name}=$resname;
 	    $resrec->{num}=$iresnum;
             $resrec->{anum}=$resnum if ($readalternate);
-	    $resrec->{chain}=$chainrec->{id};
+	    $resrec->{chain}=$chainrec->{chain};
 	    $resrec->{start}=$#{$chainrec->{atom}};
 	    $resrec->{end}=$resrec->{start};
 	    $resrec->{valid}=1;
@@ -563,12 +570,13 @@ sub readPDB {
 
       $chain="+";
 
-      my $crec=$self->{chainlookup}->{$chain};
+      my $ctag=$usesegwithchain?sprintf("%s:%s",$chain,$seg):$chain;
+      my $crec=$self->{chainlookup}->{$ctag};
       if (defined $crec) {
         $chainrec=$crec;
         $newchain=0;
       } else {
-        $chainrec=$self->_newChain($chain);
+        $chainrec=$self->_newChain($ctag);
 	$newchain=1;
       }
 
@@ -591,7 +599,7 @@ sub readPDB {
       $pdbrec->{resname}=$resname;
       $pdbrec->{resnum}=$iresnum;
 
-      $pdbrec->{chain}=$chainrec->{id};
+      $pdbrec->{chain}=$chainrec->{chain};
       $pdbrec->{xcoor}=substr($_,30,8)+0.0;
       $pdbrec->{ycoor}=substr($_,38,8)+0.0;
       $pdbrec->{zcoor}=substr($_,46,8)+0.0;
@@ -611,7 +619,7 @@ sub readPDB {
 	my $resrec={};
 	$resrec->{name}=$resname;
 	$resrec->{num}=$iresnum;
-	$resrec->{chain}=$chainrec->{id};
+	$resrec->{chain}=$chainrec->{chain};
 	$resrec->{start}=$#{$chainrec->{atom}};
 	$resrec->{end}=$resrec->{start};
 	$resrec->{valid}=1;
@@ -630,7 +638,7 @@ sub readPDB {
   my $nchain=();
   my $keephet;
   foreach my $c ( @{$self->{chain}} ) {
-    if ($c->{id} ne "+") {
+    if ($c->{chain} ne "+") {
       push(@{$nchain},$c);
     } else {
       $keephet=$c;
@@ -776,7 +784,7 @@ sub readCIF {
     $pdbrec->{resname}=$resname;
     $pdbrec->{resnum}=$resnum+0;
 	
-    $pdbrec->{chain}=$chainrec->{id};
+    $pdbrec->{chain}=$chainrec->{chain};
     $pdbrec->{xcoor}=$xcoor;
     $pdbrec->{ycoor}=$ycoor;
     $pdbrec->{zcoor}=$zcoor;
@@ -796,7 +804,7 @@ sub readCIF {
       my $resrec={};
       $resrec->{name}=$resname;
       $resrec->{num}=$iresnum;
-      $resrec->{chain}=$chainrec->{id};
+      $resrec->{chain}=$chainrec->{chain};
       $resrec->{start}=$#{$chainrec->{atom}};
       $resrec->{end}=$resrec->{start};
       $resrec->{valid}=1;
@@ -904,7 +912,7 @@ sub readCRD {
 	$pdbrec->{resname}=$resname;
 	$pdbrec->{resnum}=$resnum+0;
 	
-	$pdbrec->{chain}=$chainrec->{id};
+	$pdbrec->{chain}=$chainrec->{chain};
 	$pdbrec->{xcoor}=$xcoor;
 	$pdbrec->{ycoor}=$ycoor;
 	$pdbrec->{zcoor}=$zcoor;
@@ -920,7 +928,7 @@ sub readCRD {
 	  my $resrec={};
 	  $resrec->{name}=$resname;
 	  $resrec->{num}=$iresnum;
-	  $resrec->{chain}=$chainrec->{id};
+	  $resrec->{chain}=$chainrec->{chain};
 	  $resrec->{start}=$#{$chainrec->{atom}};
 	  $resrec->{end}=$resrec->{start};
 	  $resrec->{valid}=1;
@@ -998,7 +1006,7 @@ sub readMol2 {
       $pdbrec->{resname}=$resname;
       $pdbrec->{resnum}=$resnum+0;
       
-      $pdbrec->{chain}=$chainrec->{id};
+      $pdbrec->{chain}=$chainrec->{chain};
       $pdbrec->{xcoor}=$xcoor;
       $pdbrec->{ycoor}=$ycoor;
       $pdbrec->{zcoor}=$zcoor;
@@ -1014,7 +1022,7 @@ sub readMol2 {
 	my $resrec={};
 	$resrec->{name}=$resname;
 	$resrec->{num}=$iresnum;
-	$resrec->{chain}=$chainrec->{id};
+	$resrec->{chain}=$chainrec->{chain};
 	$resrec->{start}=$#{$chainrec->{atom}};
 	$resrec->{end}=$resrec->{start};
 	$resrec->{valid}=1;
@@ -1093,7 +1101,7 @@ sub readPSF {
 	$pdbrec->{resname}=$resname;
 	$pdbrec->{resnum}=$resnum+0;
 	
-	$pdbrec->{chain}=$chainrec->{id};
+	$pdbrec->{chain}=$chainrec->{chain};
 	$pdbrec->{xcoor}=0.0;
 	$pdbrec->{ycoor}=0.0;
 	$pdbrec->{zcoor}=0.0;
@@ -1111,7 +1119,7 @@ sub readPSF {
 	  my $resrec={};
 	  $resrec->{name}=$resname;
 	  $resrec->{num}=$iresnum;
-	  $resrec->{chain}=$chainrec->{id};
+	  $resrec->{chain}=$chainrec->{chain};
 	  $resrec->{start}=$#{$chainrec->{atom}};
 	  $resrec->{end}=$resrec->{start};
 	  $resrec->{valid}=1;
@@ -1853,17 +1861,17 @@ sub generateSegNames {
   	    $r->{seg}=sprintf("WT%02d",$nwatpart);
           }
 	} elsif ($r->{name} =~ /GUA|ADE|URA|THY|CYT|PSU|5MU|G7M|AET|DHU|OMC|H2U|S4U|QUO|4SU|2MA|MAD|RT/) {
-	  $r->{seg}=sprintf("N%02d%1s",$part[$ir],$c->{id});
+	  $r->{seg}=sprintf("N%02d%1s",$part[$ir],$c->{chain});
         } elsif ($r->{chain} eq "+") {
 	  $r->{seg}="HETA";
 	} else {
-	  if ($#{$self->{chain}}>0 || $self->{chain}->[0]->{id}=~/[A-Z]/) {
+	  if ($#{$self->{chain}}>0 || $self->{chain}->[0]->{chain}=~/[A-Z]/) {
 	    if ($ipart>1) {
 	      $r->{seg}=sprintf("%1s%02d%1s",
-		 substr($segname,0,1),$part[$ir],($c->{id} eq "" || $c->{id} eq " ")?"0":$c->{id});
+		 substr($segname,0,1),$part[$ir],($c->{chain} eq "" || $c->{chain} eq " ")?"0":$c->{chain});
 	    } else {
 	      $r->{seg}=sprintf("%3s%1s",
-		 substr($segname,0,3),($c->{id} eq "" || $c->{id} eq " ")?"0":$c->{id});
+		 substr($segname,0,3),($c->{chain} eq "" || $c->{chain} eq " ")?"0":$c->{chain});
 	    }
 	  } else {
 	    if ($ipart>1) {
@@ -2004,7 +2012,7 @@ sub getSegNames {
 	    $rec->{name}=$rseg;
 	    $rec->{first}=(!defined $lastseg);
 	    $rec->{last}=0;
-	    $rec->{chain}=$c->{id};
+	    $rec->{chain}=$c->{chain};
 	    $rec->{chainrec}=$c;
 	    $rec->{from}=$r->{num};
 	    $rec->{frominx}=$ir;
@@ -2033,7 +2041,7 @@ sub copySegNames {
   my %segs;
   foreach my $c ( @{$mol->{chain}} ) {
     foreach my $r ( @{$c->{res}} ) {
-      my $key1=sprintf("%s:%s:%d",$c->{id},$r->{name},$r->{num});
+      my $key1=sprintf("%s:%s:%d",$c->{chain},$r->{name},$r->{num});
       my $key2=sprintf(":%s:%d",$r->{name},$r->{num});
       $segs{$key1}=() if (!exists $segs{key1});
       push(@{$segs{$key1}},$r);
@@ -2044,7 +2052,7 @@ sub copySegNames {
 
   foreach my $c ( @{$self->{chain}} ) {
     foreach my $r ( @{$c->{res}} ) {
-      my $key1=sprintf("%s:%s:%d",$c->{id},$r->{name},$r->{num});
+      my $key1=sprintf("%s:%s:%d",$c->{chain},$r->{name},$r->{num});
       my $key2=sprintf(":%s:%d",$r->{name},$r->{num});
       
       my $mr;
@@ -2140,7 +2148,7 @@ sub removeChain {
   my $cid=shift;
 
   for (my $i=0; $i<=$#{$self->{chain}}; $i++) {
-      if ($self->{chain}->[$i]->{id} eq $cid) {
+      if ($self->{chain}->[$i]->{chain} eq $cid) {
 	  splice(@{$self->{chain}},$i,1);
       }
   }
@@ -2187,9 +2195,9 @@ sub countInterfaceContacts {
     for (my $j=$i+1; $j<=$#ac; $j++) {
       my $c2=$ac[$j];
       if (($#{$c1->{res}}>=0) && ($#{$c2->{res}}>=0) &&
-           ((! defined $cidA) || ($cidA eq $c1->{id}) ||
-           ($cidA eq $c2->{id})) && ((! defined $cidB) ||
-           ($cidB eq $c1->{id}) || ($cidB eq $c2->{id}))) {
+           ((! defined $cidA) || ($cidA eq $c1->{chain}) ||
+           ($cidA eq $c2->{chain})) && ((! defined $cidB) ||
+           ($cidB eq $c1->{chain}) || ($cidB eq $c2->{chain}))) {
 
 	  my $AAcontacts=0;
 	  foreach my $a1 ( @{$c1->{atom}} ) {
@@ -2216,8 +2224,8 @@ sub countInterfaceContacts {
 	  }
 	  my $h={};
 	  $h->{AAcontacts}=$AAcontacts;
-	  $h->{cidA}=$c1->{id};
-	  $h->{cidB}=$c2->{id};
+	  $h->{cidA}=$c1->{chain};
+	  $h->{cidB}=$c2->{chain};
 	  push(@{$AAlist},$h);
 
       }
@@ -2479,14 +2487,14 @@ sub listFromValid {
       push(@arr,$r->{num}) if ($r->{valid});
     }
     if ($#arr>=0) {
-      foreach my $tlist ( @{&GenUtil::fragListFromArray(\@arr,$c->{id})} ) {
+      foreach my $tlist ( @{&GenUtil::fragListFromArray(\@arr,$c->{chain})} ) {
 	push(@{$retlist},$tlist);
       }
     } else {
       my $rec={};
       $rec->{from}=$self->firstResNum($c);
       $rec->{to}=$self->lastResNum($c);
-      $rec->{chain}=$c->{id};
+      $rec->{chain}=$c->{chain};
       push(@{$retlist},$rec);
     }
   }
@@ -4127,7 +4135,7 @@ sub completeResidue {
     my $sichonogly=0;
     my $scwrlnogly=0;
     my %resseg;
-#    if ($c->{id} ne "+") {
+#    if ($c->{chain} ne "+") {
     foreach my $r ( @{$c->{res}} ) {
       $resseg{$r->{num}}=$r->{seg};
       if ($r->{valid} && 
@@ -4596,7 +4604,7 @@ sub replaceIons {
       $pdbrec->{atomname}=$i->{name};
       $pdbrec->{resname}=$i->{name};
       $pdbrec->{resnum}=$rinx;
-      $pdbrec->{chain}=$chainrec->{id};
+      $pdbrec->{chain}=$chainrec->{chain};
       $pdbrec->{xcoor}=$rw->{atom}->{xcoor};
       $pdbrec->{ycoor}=$rw->{atom}->{ycoor};
       $pdbrec->{zcoor}=$rw->{atom}->{zcoor};
@@ -4612,7 +4620,7 @@ sub replaceIons {
 
       $resrec->{name}=$i->{name};
       $resrec->{num}=$rinx++;
-      $resrec->{chain}=$chainrec->{id};
+      $resrec->{chain}=$chainrec->{chain};
       $resrec->{start}=$#{$chainrec->{atom}};
       $resrec->{end}=$resrec->{start};
       $resrec->{valid}=1;
@@ -4730,7 +4738,7 @@ sub replaceWaterWithMolecule {
       $pdbrec->{atomname}=$ra->{atomname};
       $pdbrec->{resname}=$ra->{resname};
       $pdbrec->{resnum}=$rinx;
-      $pdbrec->{chain}=$chainrec->{id};
+      $pdbrec->{chain}=$chainrec->{chain};
       $pdbrec->{xcoor}=$wx+$ra->{xcoor};
       $pdbrec->{ycoor}=$wy+$ra->{ycoor};
       $pdbrec->{zcoor}=$wz+$ra->{zcoor};
@@ -4746,7 +4754,7 @@ sub replaceWaterWithMolecule {
 
     $resrec->{name}=$rmol->{chain}->[0]->{res}->[0]->{name};
     $resrec->{num}=$rinx++;
-    $resrec->{chain}=$chainrec->{id};
+    $resrec->{chain}=$chainrec->{chain};
     $resrec->{start}=$start;
     $resrec->{end}=$#{$chainrec->{atom}};
     $resrec->{valid}=1;
@@ -4826,26 +4834,33 @@ sub setChain {
     $self->{segmentlist}=undef;
   
     $c->{id}=$chainid;
+    if ($chainid =~ /(.*):(.*)/) {
+       $c->{chain}=$1;
+       $c->{seg}=$2;
+    } else {
+       $c->{chain}=$chainid;
+       $c->{seg}="";
+    }
   
     foreach my $a ( @{$c->{atom}} ) {
-      $a->{chain}=$chainid;
+      $a->{chain}=$c->{chain};
     }
 
     foreach my $r ( @{$c->{res}} ) {
      foreach my $s ( @{$self->{ssbond}} ) {
       if ($s->{resnum1}==$r->{num} &&
 	  $s->{chain1}==$r->{chain}) {
-	$s->{chain1}=$chainid;
+	$s->{chain1}=$c->{chain};
       }
       if ($s->{resnum2}==$r->{num} &&
 	  $s->{chain2}==$r->{chain}) {
-	$s->{chain2}=$chainid;
+	$s->{chain2}=$c->{chain};
       }
      }
     }
 
     foreach my $r ( @{$c->{res}} ) {
-      $r->{chain}=$chainid;
+      $r->{chain}=$c->{chain};
     }
 
     $self->{chainlookup}->{$chainid}=$c;
@@ -5215,6 +5230,13 @@ sub _newChain {
 
   my $chainrec={};
   $chainrec->{id}=($cid eq " " || $cid eq "")?"":$cid;
+  if ($chainrec->{id} =~ /(.*):(.*)/) {
+     $chainrec->{chain}=$1;
+     $chainrec->{seg}=$2;
+  } else {
+     $chainrec->{chain}=$chainrec->{id};
+     $chainrec->{seg}="";
+  }
   $chainrec->{atom}=();
   $chainrec->{res}=();
   $chainrec->{xcoor}=();

@@ -191,7 +191,7 @@ if (defined $extract || $avg || defined $enstag) {
   if (defined $psffile) {
     $cmpmol->readPSF($psffile);
   } else {
-    $cmpmol->readPDB($pdbtemplate);
+    $cmpmol->readPDB($pdbtemplate,useseg=>1);
   }
 
   if ($avg) {
@@ -199,7 +199,7 @@ if (defined $extract || $avg || defined $enstag) {
     if (defined $psffile) {
       $avgmol->readPSF($psffile);
     } else {
-      $avgmol->readPDB($pdbtemplate);
+      $avgmol->readPDB($pdbtemplate,useseg=>1);
     }
   }
 
@@ -429,7 +429,7 @@ foreach my $dcd ( @dcdfiles ) {
     if (defined $psffile) {
       $cmpmol->readPSF($psffile);
     } else {
-      $cmpmol->readPDB($pdbtemplate);
+      $cmpmol->readPDB($pdbtemplate,useseg=>1);
     }
 
 
@@ -541,7 +541,7 @@ foreach my $dcd ( @dcdfiles ) {
     if (defined $psffile) {
       $cmpmol->readPSF($psffile);
     } else {
-      $cmpmol->readPDB($pdbtemplate);
+      $cmpmol->readPDB($pdbtemplate,useseg=>1);
     }
     
     if (defined $apply || defined $ffile) {

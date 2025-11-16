@@ -25,7 +25,7 @@ sub usage {
   printf STDERR "         [-renumwatersegs]\n";
   printf STDERR "         [-match pdbfile]\n";
   printf STDERR "         [-setchain id] [-setseg id] [-setall]\n";
-  printf STDERR "         [-readseg] [-chainfromseg] [-splitseg] [-alternate]\n";
+  printf STDERR "         [-readseg] [-chainfromseg] [-splitseg] [-useseg] [-alternate]\n";
   printf STDERR "         [-charmm19] [-amber]\n";
   printf STDERR "         [-out charmm19 | charmm22 | amber | generic]\n";
   printf STDERR "         [-genres]\n";
@@ -150,6 +150,7 @@ my $crdext=0;
 my $crdinp=0;
 my $cifinp=0;
 my $splitseg=undef;
+my $useseg=undef;
 my $alternate=undef;
 my $clashcut=undef;
 my $setaux1=undef;
@@ -210,6 +211,9 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-splitseg") {
     shift @ARGV;
     $splitseg=1;
+  } elsif ($ARGV[0] eq "-useseg") {
+    shift @ARGV;
+    $useseg=1;
   } elsif ($ARGV[0] eq "-alternate") {
     shift @ARGV;
     $alternate=1;
@@ -666,7 +670,7 @@ if ($mol2) {
 } elsif ($cifinp) {
   $mol->readCIF($fname);
 } else {
-  $mol->readPDB($fname,translate=>$inmode,ignoreseg=>$ignoreseg,splitseg=>$splitseg,alternate=>$alternate,
+  $mol->readPDB($fname,translate=>$inmode,ignoreseg=>$ignoreseg,splitseg=>$splitseg,useseg=>$useseg,alternate=>$alternate,
 		chainfromseg=>$chainfromseg,model=>$selmodel,firstmodel=>$firstmodel);
 }
 
