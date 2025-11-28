@@ -1399,7 +1399,7 @@ sub writePDB {
 	  $ta->{aux2}=0.0;
 	}
 
- 	printf $fname "%s\n",&_pdbLine($ta,($translate=~/CHA/ && !$genresno),$longaux2,$delimiter)
+ 	printf $fname "%s\n",&_pdbLine($ta,($translate=~/CHA/ && !$genresno),$longaux2,$delimiter,($translate=~/GENERIC/)?1:0)
 	   if (($translate !~ /NOH/ || $ta->{atomname}!~/^[0-9]*H.*/) && !(!$dohetero && $ta->{hetero}));
 	$prevres=$ta->{resnum};
       }
@@ -5141,6 +5141,7 @@ sub _pdbLine {
   my $chmode=shift;
   my $longaux2=shift;
   my $delimiter=shift;
+  my $maxatm=shift;
   $chmode=0 if (!defined $chmode);
 
   my $chainid=$pdbrec->{chain};
@@ -5193,7 +5194,11 @@ sub _pdbLine {
       $atomnum=sprintf("HETAT%6d",$pdbrec->{atominx});
     }
   } else {
-    $atomnum=sprintf("ATOM%7d",$pdbrec->{atominx});
+    if (defined $maxatm and $maxatm and $pdbrec->{atominx}>99999) {
+       $atomnum="ATOM  *****";
+    } else {
+       $atomnum=sprintf("ATOM%7d",$pdbrec->{atominx});
+    }
   }
   if (length($pdbrec->{atomname})>3 || ($pdbrec->{atomname}=~/[0-9]H.*/)) {
     if (defined $longaux2 && $longaux2) {
