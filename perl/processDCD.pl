@@ -15,7 +15,7 @@ sub usage {
   printf STDERR "          [-rms CA|CAB|C|O|N|side|back|all ref] [-useseg]\n";
   printf STDERR "          [-rmsl min:max[...]]\n";
   printf STDERR "          [-qscore ref] [-boxsize]\n";
-  printf STDERR "          [-wrapseg]\n";
+  printf STDERR "          [-wrapseg] [-box x y z]\n";
   printf STDERR "          [-average] [-fit] [-fitsel cab|ca|cb|heavy] [-fitresnumonly]\n";
   printf STDERR "          [-fitl min:max[...]]\n";
   printf STDERR "          [-ref ref]\n";
@@ -70,6 +70,9 @@ my $selmode="cab";
 
 my $boxsize=0;
 my $wrapseg=0;
+my $boxx=undef;
+my $boxy=undef;
+my $boxz=undef;
 
 my $useseg=0;
 my $lsqfit=0;
@@ -136,6 +139,12 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-wrapseg") {
     shift @ARGV;
     $wrapseg=1;
+    $useseg=1;
+  } elsif ($ARGV[0] eq "-box") {
+    shift @ARGV;
+    $boxx=shift @ARGV;
+    $boxy=shift @ARGV;
+    $boxz=shift @ARGV;
   } elsif ($ARGV[0] eq "-ref") {
     shift @ARGV;
     $ref=shift @ARGV;
@@ -293,9 +302,9 @@ foreach my $dcd ( @dcdfiles ) {
     }
 
     for ($i=1; $itot<=$to && $i<=$nfiles; $i++) {
-      my $a=0;
-      my $b=0;
-      my $c=0; 
+      my $a=undef;
+      my $b=undef;
+      my $c=undef; 
        
       if ($crystal) {
 	($tbuf,$tlen)=&GenUtil::readFortran($dcdfile);
@@ -318,6 +327,14 @@ foreach my $dcd ( @dcdfiles ) {
             printf "%f %f %f - %f %f %f\n",$a,$b,$c,$a1,$a2,$a3;
           }
         }
+      }
+      $a=$boxx if (!defined $a && defined $boxx);
+      $b=$boxy if (!defined $b && defined $boxy);
+      $c=$boxz if (!defined $c && defined $boxz);
+
+      if ($wrapseg && (!defined $a || !defined $b || !defined $c)) {
+         printf STDERR "need box size for wrapping\n";
+         exit(1);
       }
       
       ($xbuf,$len)=&GenUtil::readFortran($dcdfile); # printf STDERR "%d ",$len;
