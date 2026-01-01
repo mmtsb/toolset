@@ -229,6 +229,7 @@ while ($#ARGV>=0) {
     $boxx=0.0+shift @ARGV; 
     $boxy=0.0+shift @ARGV; 
     $boxz=0.0+shift @ARGV; 
+    $useseg=1;
   } elsif ($ARGV[0] eq "-by") {
     shift @ARGV;
     $wrapby=shift @ARGV;

@@ -3297,7 +3297,7 @@ sub wrap {
   $scx=0 if (!defined $scx);
   $scy=0 if (!defined $scy);
   $scz=0 if (!defined $scz);
-  
+
   if ($by eq "system") {
     my ($cx,$cy,$cz)=$self->centerOfMass();
     my $dx=($scx-$cx);
@@ -3312,7 +3312,7 @@ sub wrap {
       my ($cx,$cy,$cz)=(0.0,0.0,0.0);
       my $atom=$c->{atom};
       my $n=$#{$atom}+1;
-    
+   
       for (my $i=0; $i<=$#{$atom}; $i++) {
         $cx+=$atom->[$i]->{xcoor};
         $cy+=$atom->[$i]->{ycoor};
