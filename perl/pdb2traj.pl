@@ -10,6 +10,7 @@ sub usage {
   printf STDERR "options: [-f listfile]\n";
   printf STDERR "         [-out file]\n";
   printf STDERR "         [-nsel selection]\n";
+  printf STDERR "         [-useseg]\n";
   printf STDERR "         [-fit] [-l min:max[=..]] [-sel cab|ca|cb|p|heavy]\n";
   printf STDERR "         [-ref PDB]\n";
   exit 1;
@@ -35,6 +36,7 @@ my $fit=0;
 my $refpdb=undef;
 my $fraglist=undef;
 my $selmode="cab";
+my $useseg=0;
 
 while ($#ARGV>=0) {
   if ($ARGV[0] eq "-help" || $ARGV[0] eq "-h") {
@@ -60,6 +62,9 @@ while ($#ARGV>=0) {
   } elsif ($ARGV[0] eq "-ref") {
     shift @ARGV;
     $refpdb=shift @ARGV;
+  } elsif ($ARGV[0] eq "-useseg") {
+    shift @ARGV;
+    $useseg=1;
   } elsif ($ARGV[0] =~ /^-/) {
     printf STDERR "invalid option %s\n",$ARGV[0];
     &usage();
@@ -77,7 +82,9 @@ if (defined $listfile) {
   undef $linp;
 }
 
-my $first=Molecule::new($filelist[0]);
+my $first=Molecule::new();
+$first->readPDB($filelist[0],useseg=>$useseg);
+
 if (defined $sel){
   $first->setValidSelection($sel);
   $first=$first->clone(1);
@@ -87,7 +94,8 @@ my $refmol;
 my $analyze;
 if ($fit) { 
   if (defined $refpdb && -r $refpdb) {
-    $refmol=Molecule::new($refpdb);
+    $refmol=Molecule::new();
+    $refmol->readPDB($refpdb,useseg=>$useseg);
     if (defined $sel) {
       $refmol->setValidSelection($sel);
       $refmol=$refmol->clone(1);
@@ -113,7 +121,8 @@ binmode $out;
 
 foreach my $f ( @filelist ) {
 #  printf STDERR "$f\n";
-  my $mol=Molecule::new($f);
+  my $mol=Molecule::new();
+  $mol->readPDB($f,useseg=>1);
   if (defined $sel){
     $mol->setValidSelection($sel);
     $mol=$mol->clone(1);
